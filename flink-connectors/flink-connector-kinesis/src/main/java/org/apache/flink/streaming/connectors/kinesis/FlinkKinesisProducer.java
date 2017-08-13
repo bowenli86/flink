@@ -14,7 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.kinesis;
+
+import org.apache.flink.api.java.ClosureCleaner;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.flink.streaming.connectors.kinesis.serialization.KinesisSerializationSchema;
+import org.apache.flink.streaming.connectors.kinesis.util.AWSUtil;
+import org.apache.flink.streaming.connectors.kinesis.util.KinesisConfigUtil;
+import org.apache.flink.streaming.util.serialization.SerializationSchema;
 
 import com.amazonaws.services.kinesis.producer.Attempt;
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
@@ -24,15 +33,6 @@ import com.amazonaws.services.kinesis.producer.UserRecordResult;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import org.apache.flink.api.java.ClosureCleaner;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.streaming.connectors.kinesis.config.ProducerConfigConstants;
-import org.apache.flink.streaming.connectors.kinesis.serialization.KinesisSerializationSchema;
-import org.apache.flink.streaming.connectors.kinesis.util.AWSUtil;
-import org.apache.flink.streaming.connectors.kinesis.util.KinesisConfigUtil;
-import org.apache.flink.streaming.util.serialization.SerializationSchema;
-import org.apache.flink.util.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +55,9 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 	/** Properties to parametrize settings such as AWS service region, access key etc. */
 	private final Properties configProps;
 
+	/** Configuration for KinesisProducer. */
+	private final KinesisProducerConfiguration producerConfig;
+
 	/* Flag controlling the error behavior of the producer */
 	private boolean failOnError = false;
 
@@ -70,9 +73,7 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 	/* Optional custom partitioner */
 	private KinesisPartitioner<OUT> customPartitioner = null;
 
-
 	// --------------------------- Runtime fields ---------------------------
-
 
 	/* Our Kinesis instance for each parallel Flink sink */
 	private transient KinesisProducer producer;
@@ -83,16 +84,14 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 	/* Field for async exception */
 	private transient volatile Throwable thrownException;
 
-
 	// --------------------------- Initialization and configuration  ---------------------------
-
 
 	/**
 	 * Create a new FlinkKinesisProducer.
 	 * This is a constructor supporting Flink's {@see SerializationSchema}.
 	 *
 	 * @param schema Serialization schema for the data type
-	 * @param configProps The properties used to configure AWS credentials and AWS region
+	 * @param configProps The properties used to configure KinesisProducer, including AWS credentials and AWS region
 	 */
 	public FlinkKinesisProducer(final SerializationSchema<OUT> schema, Properties configProps) {
 
@@ -104,6 +103,7 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 				return ByteBuffer.wrap(schema.serialize(element));
 			}
 			// use default stream and hash key
+
 			@Override
 			public String getTargetStream(OUT element) {
 				return null;
@@ -116,13 +116,13 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 	 * This is a constructor supporting {@see KinesisSerializationSchema}.
 	 *
 	 * @param schema Kinesis serialization schema for the data type
-	 * @param configProps The properties used to configure AWS credentials and AWS region
+	 * @param configProps The properties used to configure KinesisProducer, including AWS credentials and AWS region
 	 */
 	public FlinkKinesisProducer(KinesisSerializationSchema<OUT> schema, Properties configProps) {
-		this.configProps = checkNotNull(configProps, "configProps can not be null");
-
-		// check the configuration properties for any conflicting settings
-		KinesisConfigUtil.validateProducerConfiguration(this.configProps);
+		checkNotNull(configProps, "configProps can not be null");
+		this.configProps = KinesisConfigUtil.replaceDeprecatedProducerKeys(configProps);
+		// check the configuration properties for any invalid settings
+		this.producerConfig = KinesisConfigUtil.validateProducerConfiguration(configProps);
 
 		ClosureCleaner.ensureSerializable(Objects.requireNonNull(schema));
 		this.schema = schema;
@@ -147,7 +147,7 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 	}
 
 	/**
-	 * Set default partition id
+	 * Set default partition id.
 	 * @param defaultPartition Name of the default partition
 	 */
 	public void setDefaultPartition(String defaultPartition) {
@@ -160,33 +160,20 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 		this.customPartitioner = partitioner;
 	}
 
-
 	// --------------------------- Lifecycle methods ---------------------------
-
 
 	@Override
 	public void open(Configuration parameters) throws Exception {
 		super.open(parameters);
 
-		KinesisProducerConfiguration producerConfig = new KinesisProducerConfiguration();
-
-		producerConfig.setRegion(configProps.getProperty(ProducerConfigConstants.AWS_REGION));
 		producerConfig.setCredentialsProvider(AWSUtil.getCredentialsProvider(configProps));
-		if (configProps.containsKey(ProducerConfigConstants.COLLECTION_MAX_COUNT)) {
-			producerConfig.setCollectionMaxCount(PropertiesUtil.getLong(configProps,
-					ProducerConfigConstants.COLLECTION_MAX_COUNT, producerConfig.getCollectionMaxCount(), LOG));
-		}
-		if (configProps.containsKey(ProducerConfigConstants.AGGREGATION_MAX_COUNT)) {
-			producerConfig.setAggregationMaxCount(PropertiesUtil.getLong(configProps,
-					ProducerConfigConstants.AGGREGATION_MAX_COUNT, producerConfig.getAggregationMaxCount(), LOG));
-		}
 
 		producer = new KinesisProducer(producerConfig);
 		callback = new FutureCallback<UserRecordResult>() {
 			@Override
 			public void onSuccess(UserRecordResult result) {
 				if (!result.isSuccessful()) {
-					if(failOnError) {
+					if (failOnError) {
 						thrownException = new RuntimeException("Record was not sent successful");
 					} else {
 						LOG.warn("Record was not sent successful");
@@ -222,7 +209,7 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 				List<Attempt> attempts = ((UserRecordFailedException) thrownException).getResult().getAttempts();
 				for (Attempt attempt: attempts) {
 					if (attempt.getErrorMessage() != null) {
-						errorMessages += attempt.getErrorMessage() +"\n";
+						errorMessages += attempt.getErrorMessage() + "\n";
 					}
 				}
 			}
