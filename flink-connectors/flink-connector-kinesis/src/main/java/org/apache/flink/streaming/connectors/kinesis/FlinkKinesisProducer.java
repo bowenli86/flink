@@ -167,6 +167,7 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 		super.open(parameters);
 
 		producerConfig.setCredentialsProvider(AWSUtil.getCredentialsProvider(configProps));
+		producerConfig.setCredentialsRefreshDelay(100);
 
 		producer = new KinesisProducer(producerConfig);
 		callback = new FutureCallback<UserRecordResult>() {
