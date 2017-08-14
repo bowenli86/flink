@@ -21,6 +21,7 @@ import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisProducer;
 
 /**
  * @deprecated
+ *
  * Optional producer specific configuration keys for {@link FlinkKinesisProducer}.
  */
 @Deprecated
@@ -28,12 +29,14 @@ public class ProducerConfigConstants extends AWSConfigConstants {
 
 	/**
 	 * @deprecated
+	 *
 	 * Deprecated key. **/
 	@Deprecated
 	public static final String COLLECTION_MAX_COUNT = "aws.producer.collectionMaxCount";
 
  	/**
 	 * @deprecated
+	 * 
 	 * Deprecated key. **/
 	@Deprecated
 	public static final String AGGREGATION_MAX_COUNT = "aws.producer.aggregationMaxCount";
