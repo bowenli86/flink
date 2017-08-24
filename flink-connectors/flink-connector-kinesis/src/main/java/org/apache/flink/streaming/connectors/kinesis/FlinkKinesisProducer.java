@@ -167,6 +167,8 @@ public class FlinkKinesisProducer<OUT> extends RichSinkFunction<OUT> {
 		producerConfig.setRegion(configProps.getProperty(AWSConfigConstants.AWS_REGION));
 		producerConfig.setCredentialsProvider(AWSUtil.getCredentialsProvider(configProps));
 		producerConfig.setCredentialsRefreshDelay(100);
+		producerConfig.setThreadingModel(KinesisProducerConfiguration.ThreadingModel.POOLED);
+		producerConfig.setThreadPoolSize(25);
 
 		producer = new KinesisProducer(producerConfig);
 		callback = new FutureCallback<UserRecordResult>() {
