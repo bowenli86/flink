@@ -55,6 +55,13 @@ public class KinesisConfigUtil {
 	/** Default values for RateLimit. **/
 	private static final String DEFAULT_RATE_LIMIT = "100";
 
+	/** Thread pool size
+	 **/
+	public static final String THREAD_POOL_SIZE = "ThreadPoolSize";
+
+	/** Default values for ThreadPoolSize. **/
+	private static final int DEFAULT_THREAD_POOL_SIZE = 10;
+
 	/**
 	 * Validate configuration properties for {@link FlinkKinesisConsumer}.
 	 */
@@ -176,7 +183,13 @@ public class KinesisConfigUtil {
 			config.setProperty(RATE_LIMIT, DEFAULT_RATE_LIMIT);
 		}
 
-		return KinesisProducerConfiguration.fromProperties(config);
+		KinesisProducerConfiguration kpc = KinesisProducerConfiguration.fromProperties(config);
+
+		int threadPoolSize = config.containsKey(THREAD_POOL_SIZE) ?
+								Integer.parseInt(config.getProperty(THREAD_POOL_SIZE)) : DEFAULT_THREAD_POOL_SIZE;
+
+		kpc.setThreadPoolSize(threadPoolSize);
+		return kpc;
 	}
 
 	/**
