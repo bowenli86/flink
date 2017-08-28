@@ -17,9 +17,9 @@
 
 package org.apache.flink.streaming.connectors.kinesis.util;
 
+import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer;
 import org.apache.flink.streaming.connectors.kinesis.config.ProducerConfigConstants;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -62,5 +62,18 @@ public class KinesisConfigUtilTest {
 
 		assertEquals("1", replacedConfig.getProperty(KinesisConfigUtil.AGGREGATION_MAX_COUNT));
 		assertEquals("2", replacedConfig.getProperty(KinesisConfigUtil.COLLECTION_MAX_COUNT));
+	}
+
+	@Test
+	public void testSetThreadPoolSize() {
+		Properties testConfig = new Properties();
+		testConfig.setProperty(ProducerConfigConstants.AWS_REGION, "us-east-1");
+
+		KinesisProducerConfiguration kpc = KinesisConfigUtil.validateProducerConfiguration(testConfig);
+		assertEquals(10, kpc.getThreadPoolSize());
+
+		testConfig.setProperty(KinesisConfigUtil.THREAD_POOL_SIZE, "15");
+		kpc = KinesisConfigUtil.validateProducerConfiguration(testConfig);
+		assertEquals(15, kpc.getThreadPoolSize());
 	}
 }
