@@ -20,6 +20,7 @@ package org.apache.flink.streaming.examples.sideoutput;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -58,7 +59,7 @@ public class SideOutputExample {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime);
 
 		// make parameters available in the web interface
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		// get input data
 		DataStream<String> text;

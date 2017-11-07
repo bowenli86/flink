@@ -24,6 +24,7 @@ import org.apache.flink.api.common.functions.RichFilterFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 
@@ -67,7 +68,7 @@ public class EmptyFieldsCountAccumulator {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		// make parameters available in the web interface
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		// get the data set
 		final DataSet<StringTriple> file = getDataSet(env, params);

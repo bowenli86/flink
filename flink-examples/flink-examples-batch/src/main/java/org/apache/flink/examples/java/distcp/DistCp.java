@@ -26,6 +26,7 @@ import org.apache.flink.api.java.LocalEnvironment;
 import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.api.java.operators.FlatMapOperator;
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FSDataInputStream;
@@ -86,7 +87,7 @@ public class DistCp {
 		}
 
 		// make parameters available in the web interface
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		env.setParallelism(parallelism);
 

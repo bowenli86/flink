@@ -19,7 +19,7 @@
 package org.apache.flink.examples.scala.relational
 
 import org.apache.flink.api.java.aggregation.Aggregations
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 
 /**
@@ -96,7 +96,7 @@ object TPCHQuery10 {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // get customer data set: (custkey, name, address, nationkey, acctbal) 
     val customers = getCustomerDataSet(env, params.get("customer"))

@@ -18,8 +18,8 @@
 
 package org.apache.flink.graph.drivers.input;
 
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.client.program.ProgramParametrizationException;
 import org.apache.flink.graph.Graph;
 import org.apache.flink.types.LongValue;
@@ -48,18 +48,18 @@ extends GeneratedGraph {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) throws ProgramParametrizationException {
-		super.configure(parameterTool);
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameters) throws ProgramParametrizationException {
+		super.configure(jobParameters);
 
 		// add dimensions as ordered by dimension ID (dim0, dim1, dim2, ...)
 
 		Map<Integer, String> dimensionMap = new TreeMap<>();
 
 		// first parse all dimensions into a sorted map
-		for (String key : parameterTool.toMap().keySet()) {
+		for (String key : jobParameters.toMap().keySet()) {
 			if (key.startsWith(PREFIX)) {
 				int dimensionId = Integer.parseInt(key.substring(PREFIX.length()));
-				dimensionMap.put(dimensionId, parameterTool.get(key));
+				dimensionMap.put(dimensionId, jobParameters.toMap().get(key));
 			}
 		}
 

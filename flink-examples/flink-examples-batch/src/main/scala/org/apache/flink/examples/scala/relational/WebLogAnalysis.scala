@@ -18,7 +18,7 @@
 
 package org.apache.flink.examples.scala.relational
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.examples.java.relational.util.WebLogData
 import org.apache.flink.util.Collector
@@ -98,7 +98,7 @@ object WebLogAnalysis {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     val documents = getDocumentsDataSet(env, params)
     val ranks = getRanksDataSet(env, params)

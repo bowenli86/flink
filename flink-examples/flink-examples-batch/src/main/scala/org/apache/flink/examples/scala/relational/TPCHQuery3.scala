@@ -19,7 +19,7 @@
 package org.apache.flink.examples.scala.relational
 
 import org.apache.flink.api.java.aggregation.Aggregations
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 
 /**
@@ -87,7 +87,7 @@ object TPCHQuery3 {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // set filter date
     val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd")

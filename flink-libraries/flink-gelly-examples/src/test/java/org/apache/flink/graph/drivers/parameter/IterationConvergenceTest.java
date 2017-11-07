@@ -18,8 +18,6 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,30 +39,29 @@ extends ParameterTestBase {
 
 	@Test
 	public void testWithIterations() {
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--iterations", "42"}));
+		parameter.configure(getJobParameters(new String[]{"--iterations", "42"}));
 		Assert.assertEquals(42, parameter.getValue().iterations);
 		Assert.assertEquals(Double.MAX_VALUE, parameter.getValue().convergenceThreshold, 0.000001);
 	}
 
 	@Test
 	public void testWithConvergenceThreshold() {
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--convergence_threshold", "42"}));
+		parameter.configure(getJobParameters(new String[]{"--convergence_threshold", "42"}));
 		Assert.assertEquals(Integer.MAX_VALUE, parameter.getValue().iterations);
 		Assert.assertEquals(42.0, parameter.getValue().convergenceThreshold, 0.000001);
 	}
 
 	@Test
 	public void testWithBoth() {
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--iterations", "42", "--convergence_threshold", "42"}));
+		parameter.configure(getJobParameters(new String[]{"--iterations", "42", "--convergence_threshold", "42"}));
 		Assert.assertEquals(42, parameter.getValue().iterations);
 		Assert.assertEquals(42.0, parameter.getValue().convergenceThreshold, 0.000001);
 	}
 
 	@Test
 	public void testWithNeither() {
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 		Assert.assertEquals(10, parameter.getValue().iterations);
 		Assert.assertEquals(Double.MAX_VALUE, parameter.getValue().convergenceThreshold, 0.000001);
 	}
-
 }

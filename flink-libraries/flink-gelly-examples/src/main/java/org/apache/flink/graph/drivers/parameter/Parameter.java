@@ -18,7 +18,7 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
 
 /**
  * Encapsulates the usage and configuration of a command-line parameter.
@@ -51,9 +51,9 @@ public interface Parameter<T> {
 	/**
 	 * Read and parse the parameter value from command-line arguments.
 	 *
-	 * @param parameterTool parameter parser
+	 * @param jobParameters parameter parser
 	 */
-	void configure(ParameterTool parameterTool);
+	void configure(ExecutionConfig.GlobalJobParameters jobParameters);
 
 	/**
 	 * Get the parameter value.

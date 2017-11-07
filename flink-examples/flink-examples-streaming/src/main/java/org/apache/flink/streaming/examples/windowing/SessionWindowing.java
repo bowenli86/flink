@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.examples.windowing;
 
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -42,7 +43,7 @@ public class SessionWindowing {
 		final ParameterTool params = ParameterTool.fromArgs(args);
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		env.setParallelism(1);
 

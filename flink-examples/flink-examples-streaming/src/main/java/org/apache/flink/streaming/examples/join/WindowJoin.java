@@ -21,6 +21,7 @@ import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -60,7 +61,7 @@ public class WindowJoin {
 		env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime);
 
 		// make parameters available in the web interface
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		// create the data sources for both grades and salaries
 		DataStream<Tuple2<String, Integer>> grades = GradeSource.getSource(env, rate);

@@ -20,7 +20,7 @@ package org.apache.flink.streaming.scala.examples.iteration
 
 import java.util.Random
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
@@ -52,7 +52,7 @@ object IterateExample {
     val env = StreamExecutionEnvironment.getExecutionEnvironment.setBufferTimeout(1)
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // create input stream of integer pairs
     val inputStream: DataStream[(Int, Int)] =

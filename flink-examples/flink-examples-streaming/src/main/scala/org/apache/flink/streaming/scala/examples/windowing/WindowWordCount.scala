@@ -18,7 +18,7 @@
 
 package org.apache.flink.streaming.scala.examples.windowing
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.examples.wordcount.util.WordCountData
@@ -69,7 +69,7 @@ object WindowWordCount {
     }
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     val windowSize = params.getInt("window", 250)
     val slideSize = params.getInt("slide", 150)

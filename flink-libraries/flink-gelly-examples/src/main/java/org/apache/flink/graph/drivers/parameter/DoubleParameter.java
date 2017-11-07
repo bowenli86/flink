@@ -18,7 +18,8 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.JobParametersUtil;
 
 /**
  * A {@link Parameter} storing a {@link Double}.
@@ -146,8 +147,8 @@ extends SimpleParameter<Double> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) {
-		value = hasDefaultValue ? parameterTool.getDouble(name, defaultValue) : parameterTool.getDouble(name);
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameters) {
+		value = hasDefaultValue ? JobParametersUtil.getDouble(jobParameters, name, defaultValue) : JobParametersUtil.getDouble(jobParameters, name);
 
 		if (hasMinimumValue) {
 			if (minimumValueInclusive) {

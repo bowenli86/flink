@@ -20,6 +20,7 @@ package org.apache.flink.streaming.examples.kafka;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -38,9 +39,9 @@ public class Kafka010Example {
 
 	public static void main(String[] args) throws Exception {
 		// parse input arguments
-		final ParameterTool parameterTool = ParameterTool.fromArgs(args);
+		final ParameterTool params = ParameterTool.fromArgs(args);
 
-		if (parameterTool.getNumberOfParameters() < 5) {
+		if (params.getNumberOfParameters() < 5) {
 			System.out.println("Missing parameters!\n" +
 					"Usage: Kafka --input-topic <topic> --output-topic <topic> " +
 					"--bootstrap.servers <kafka brokers> " +
@@ -48,29 +49,28 @@ public class Kafka010Example {
 			return;
 		}
 
-		String prefix = parameterTool.get("prefix", "PREFIX:");
+		String prefix = params.get("prefix", "PREFIX:");
 
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.getConfig().disableSysoutLogging();
 		env.getConfig().setRestartStrategy(RestartStrategies.fixedDelayRestart(4, 10000));
 		env.enableCheckpointing(5000); // create a checkpoint every 5 seconds
-		env.getConfig().setGlobalJobParameters(parameterTool); // make parameters available in the web interface
 
 		// make parameters available in the web interface
-		env.getConfig().setGlobalJobParameters(parameterTool);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		DataStream<String> input = env
 				.addSource(new FlinkKafkaConsumer010<>(
-						parameterTool.getRequired("input-topic"),
+						params.getRequired("input-topic"),
 						new SimpleStringSchema(),
-						parameterTool.getProperties()))
+						params.getProperties()))
 				.map(new PrefixingMapper(prefix));
 
 		input.addSink(
 				new FlinkKafkaProducer010<>(
-						parameterTool.getRequired("output-topic"),
+						params.getRequired("output-topic"),
 						new SimpleStringSchema(),
-						parameterTool.getProperties()));
+						params.getProperties()));
 
 		env.execute("Kafka 0.10 Example");
 	}

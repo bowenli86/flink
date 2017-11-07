@@ -20,7 +20,6 @@ package org.apache.flink.api.java.utils;
 
 import org.apache.flink.annotation.Public;
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Preconditions;
 
@@ -46,7 +45,7 @@ import java.util.Set;
  * This class provides simple utility methods for reading and parsing program arguments from different sources.
  */
 @Public
-public class ParameterTool extends ExecutionConfig.GlobalJobParameters implements Serializable, Cloneable {
+public class ParameterTool implements Serializable, Cloneable {
 	private static final long serialVersionUID = 1L;
 
 	protected static final String NO_VALUE_KEY = "__NO_VALUE_KEY";
@@ -565,12 +564,4 @@ public class ParameterTool extends ExecutionConfig.GlobalJobParameters implement
 		ret.unrequestedParameters.addAll(other.unrequestedParameters);
 		return ret;
 	}
-
-	// ------------------------- ExecutionConfig.UserConfig interface -------------------------
-
-	@Override
-	public Map<String, String> toMap() {
-		return data;
-	}
-
 }

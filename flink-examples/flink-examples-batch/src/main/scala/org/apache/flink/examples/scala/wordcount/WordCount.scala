@@ -18,7 +18,7 @@
 
 package org.apache.flink.examples.scala.wordcount
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.examples.java.wordcount.util.WordCountData
 
@@ -53,7 +53,8 @@ object WordCount {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
+
     val text =
       if (params.has("input")) {
         env.readTextFile(params.get("input"))

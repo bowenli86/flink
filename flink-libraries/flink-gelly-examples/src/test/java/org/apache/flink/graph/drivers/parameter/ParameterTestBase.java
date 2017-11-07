@@ -18,6 +18,10 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
+import org.apache.flink.api.java.utils.ParameterTool;
+
 import org.junit.Before;
 
 /**
@@ -32,11 +36,14 @@ public abstract class ParameterTestBase {
 		owner = new MockParameterized();
 	}
 
-	private static class MockParameterized
-	extends ParameterizedBase {
+	private static class MockParameterized extends ParameterizedBase {
 		@Override
 		public String getName() {
 			return MockParameterized.class.getSimpleName();
 		}
+	}
+
+	protected static ExecutionConfig.GlobalJobParameters getJobParameters(String[] args) {
+		return new GlobalJobExecutionParameters(ParameterTool.fromArgs(args));
 	}
 }

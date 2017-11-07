@@ -18,7 +18,6 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.client.program.ProgramParametrizationException;
 
 import org.junit.Assert;
@@ -148,7 +147,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue(43.21);
 		Assert.assertEquals("[--test TEST]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "12.34"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "12.34"}));
 		Assert.assertEquals(new Double(12.34), parameter.getValue());
 	}
 
@@ -157,7 +156,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue(43.21);
 		Assert.assertEquals("[--test TEST]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 		Assert.assertEquals(new Double(43.21), parameter.getValue());
 	}
 
@@ -167,7 +166,7 @@ extends ParameterTestBase {
 	public void testWithoutDefaultWithParameter() {
 		Assert.assertEquals("--test TEST", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "12.34"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "12.34"}));
 		Assert.assertEquals(new Double(12.34), parameter.getValue());
 	}
 
@@ -178,7 +177,7 @@ extends ParameterTestBase {
 		expectedException.expect(RuntimeException.class);
 		expectedException.expectMessage("No data for required key 'test'");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 	}
 
 	// Min
@@ -186,14 +185,14 @@ extends ParameterTestBase {
 	@Test
 	public void testMinInRange() {
 		parameter.setMinimumValue(0, false);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 		Assert.assertEquals(new Double(1), parameter.getValue());
 	}
 
 	@Test
 	public void testMinAtRangeInclusive() {
 		parameter.setMinimumValue(0, true);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "0"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "0"}));
 		Assert.assertEquals(new Double(0), parameter.getValue());
 	}
 
@@ -204,7 +203,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than 0.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "0"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "0"}));
 	}
 
 	@Test
@@ -214,7 +213,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than 0.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 	}
 
 	@Test
@@ -224,7 +223,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than or equal to 0.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 	}
 
 	// Max
@@ -232,14 +231,14 @@ extends ParameterTestBase {
 	@Test
 	public void testMaxInRange() {
 		parameter.setMaximumValue(0, false);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 		Assert.assertEquals(new Double(-1), parameter.getValue());
 	}
 
 	@Test
 	public void testMaxAtRangeInclusive() {
 		parameter.setMaximumValue(0, true);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "0"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "0"}));
 		Assert.assertEquals(new Double(0), parameter.getValue());
 	}
 
@@ -250,7 +249,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than 0.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "0"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "0"}));
 	}
 
 	@Test
@@ -260,7 +259,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than 0.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 	}
 
 	@Test
@@ -270,7 +269,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than or equal to 0.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 	}
 
 	// Min and max
@@ -283,7 +282,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than -1.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-2"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-2"}));
 	}
 
 	@Test
@@ -294,14 +293,14 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than -1.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 	}
 
 	@Test
 	public void testMinAndMaxAtRangeMinimumInclusive() {
 		parameter.setMinimumValue(-1, true);
 		parameter.setMaximumValue(1, true);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 		Assert.assertEquals(new Double(-1), parameter.getValue());
 	}
 
@@ -309,7 +308,7 @@ extends ParameterTestBase {
 	public void testMinAndMaxInRange() {
 		parameter.setMinimumValue(-1, false);
 		parameter.setMaximumValue(1, false);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "0"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "0"}));
 		Assert.assertEquals(new Double(0), parameter.getValue());
 	}
 
@@ -317,7 +316,7 @@ extends ParameterTestBase {
 	public void testMinAndMaxAtRangeMaximumInclusive() {
 		parameter.setMinimumValue(-1, true);
 		parameter.setMaximumValue(1, true);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 		Assert.assertEquals(new Double(1), parameter.getValue());
 	}
 
@@ -329,7 +328,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than 1.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 	}
 
 	@Test
@@ -340,6 +339,6 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than 1.0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "2"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "2"}));
 	}
 }

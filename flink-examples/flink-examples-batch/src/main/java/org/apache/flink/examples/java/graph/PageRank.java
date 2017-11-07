@@ -28,6 +28,7 @@ import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.examples.java.graph.util.PageRankData;
 import org.apache.flink.util.Collector;
@@ -87,7 +88,7 @@ public class PageRank {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		// make the parameters available to the web ui
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		// get input data
 		DataSet<Long> pagesInput = getPagesDataSet(env, params);

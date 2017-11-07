@@ -18,7 +18,7 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.client.program.ProgramParametrizationException;
 
 import org.apache.commons.lang3.text.StrBuilder;
@@ -30,8 +30,7 @@ import java.util.List;
  * Base class for a {@link Parameterized} which maintains a list of parameters
  * used to print the command-line usage string and configure parameters.
  */
-public abstract class ParameterizedBase
-implements Parameterized {
+public abstract class ParameterizedBase implements Parameterized {
 
 	private List<Parameter<?>> parameters = new ArrayList<>();
 
@@ -67,9 +66,9 @@ implements Parameterized {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) throws ProgramParametrizationException {
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameters) throws ProgramParametrizationException {
 		for (Parameter<?> parameter : parameters) {
-			parameter.configure(parameterTool);
+			parameter.configure(jobParameters);
 		}
 	}
 }

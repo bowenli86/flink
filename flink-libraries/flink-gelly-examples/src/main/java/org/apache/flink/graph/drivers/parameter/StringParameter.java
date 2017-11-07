@@ -18,7 +18,8 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.JobParametersUtil;
 
 /**
  * A {@link Parameter} storing a {@link String}.
@@ -44,8 +45,9 @@ extends SimpleParameter<String> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) {
-		value = hasDefaultValue ? parameterTool.get(name, defaultValue) : parameterTool.getRequired(name);
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameter) {
+		value = hasDefaultValue ?
+				JobParametersUtil.get(jobParameter, name, defaultValue) : JobParametersUtil.getRequired(jobParameter, name);
 	}
 
 	@Override

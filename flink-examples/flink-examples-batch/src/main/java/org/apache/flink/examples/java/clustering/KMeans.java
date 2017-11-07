@@ -27,6 +27,7 @@ import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.examples.java.clustering.util.KMeansData;
@@ -80,7 +81,9 @@ public class KMeans {
 
 		// set up execution environment
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		env.getConfig().setGlobalJobParameters(params); // make parameters available in the web interface
+
+		// make parameters available in the web interface
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		// get input data:
 		// read the points and centroids from the provided paths or fall back to default data

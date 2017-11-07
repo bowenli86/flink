@@ -18,7 +18,6 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.client.program.ProgramParametrizationException;
 
 import org.junit.Assert;
@@ -74,7 +73,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue(42);
 		Assert.assertEquals("[--test TEST]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "54"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "54"}));
 		Assert.assertEquals(new Long(54), parameter.getValue());
 	}
 
@@ -83,7 +82,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue(13);
 		Assert.assertEquals("[--test TEST]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 		Assert.assertEquals(new Long(13), parameter.getValue());
 	}
 
@@ -93,7 +92,7 @@ extends ParameterTestBase {
 	public void testWithoutDefaultWithParameter() {
 		Assert.assertEquals("--test TEST", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "42"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "42"}));
 		Assert.assertEquals(new Long(42), parameter.getValue());
 	}
 
@@ -104,7 +103,7 @@ extends ParameterTestBase {
 		expectedException.expect(RuntimeException.class);
 		expectedException.expectMessage("No data for required key 'test'");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 	}
 
 	// Min
@@ -112,7 +111,7 @@ extends ParameterTestBase {
 	@Test
 	public void testMinInRange() {
 		parameter.setMinimumValue(0);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 		Assert.assertEquals(new Long(1), parameter.getValue());
 	}
 
@@ -123,7 +122,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than or equal to 0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 	}
 
 	// Max
@@ -131,7 +130,7 @@ extends ParameterTestBase {
 	@Test
 	public void testMaxInRange() {
 		parameter.setMaximumValue(0);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-1"}));
 		Assert.assertEquals(new Long(-1), parameter.getValue());
 	}
 
@@ -142,7 +141,7 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than or equal to 0");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "1"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "1"}));
 	}
 
 	// Min and max
@@ -155,14 +154,14 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be greater than or equal to -1");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "-2"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "-2"}));
 	}
 
 	@Test
 	public void testMinAndMaxInRange() {
 		parameter.setMinimumValue(-1);
 		parameter.setMaximumValue(1);
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "0"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "0"}));
 		Assert.assertEquals(new Long(0), parameter.getValue());
 	}
 
@@ -174,6 +173,6 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("test must be less than or equal to 1");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "2"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "2"}));
 	}
 }

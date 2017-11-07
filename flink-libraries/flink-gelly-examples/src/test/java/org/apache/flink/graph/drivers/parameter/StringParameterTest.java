@@ -18,8 +18,6 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,7 +47,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue("Flink");
 		Assert.assertEquals("[--test TEST]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "Gelly"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "Gelly"}));
 		Assert.assertEquals("Gelly", parameter.getValue());
 	}
 
@@ -58,7 +56,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue("Flink");
 		Assert.assertEquals("[--test TEST]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 		Assert.assertEquals("Flink", parameter.getValue());
 	}
 
@@ -66,7 +64,7 @@ extends ParameterTestBase {
 	public void testWithoutDefaultWithParameter() {
 		Assert.assertEquals("--test TEST", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test", "Gelly"}));
+		parameter.configure(getJobParameters(new String[]{"--test", "Gelly"}));
 		Assert.assertEquals("Gelly", parameter.getValue());
 	}
 
@@ -77,6 +75,6 @@ extends ParameterTestBase {
 		expectedException.expect(RuntimeException.class);
 		expectedException.expectMessage("No data for required key 'test'");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 	}
 }

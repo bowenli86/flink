@@ -22,6 +22,7 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.client.program.ProgramParametrizationException;
 import org.apache.flink.graph.drivers.AdamicAdar;
@@ -85,8 +86,7 @@ import java.util.Map;
  * <p>Algorithms must explicitly support each type of output via implementation of
  * interfaces. This is scalable as the number of outputs is small and finite.
  */
-public class Runner
-extends ParameterizedBase {
+public class Runner extends ParameterizedBase {
 
 	private static final String INPUT = "input";
 
@@ -127,6 +127,7 @@ extends ParameterizedBase {
 	// parameters
 
 	private final ParameterTool parameters;
+	private final ExecutionConfig.GlobalJobParameters jobParameters;
 
 	private final BooleanParameter disableObjectReuse = new BooleanParameter(this, "__disable_object_reuse");
 
@@ -155,6 +156,7 @@ extends ParameterizedBase {
 	 */
 	public Runner(String[] args) {
 		parameters = ParameterTool.fromArgs(args);
+		jobParameters = new GlobalJobExecutionParameters(parameters);
 	}
 
 	@Override
@@ -275,7 +277,7 @@ extends ParameterizedBase {
 	 */
 	private void parameterize(Parameterized parameterized) {
 		try {
-			parameterized.configure(parameters);
+			parameterized.configure(jobParameters);
 		} catch (RuntimeException ex) {
 			throw new ProgramParametrizationException(ex.getMessage());
 		}
@@ -298,12 +300,12 @@ extends ParameterizedBase {
 		config.disableForceAvro();
 		config.disableForceKryo();
 
-		config.setGlobalJobParameters(parameters);
+		config.setGlobalJobParameters(new GlobalJobExecutionParameters(parameters));
 		parameterize(this);
 
 		// configure local parameters and throw proper exception on error
 		try {
-			this.configure(parameters);
+			this.configure(jobParameters);
 		} catch (RuntimeException ex) {
 			throw new ProgramParametrizationException(ex.getMessage());
 		}
@@ -424,7 +426,7 @@ extends ParameterizedBase {
 		}
 
 		try {
-			output.configure(parameters);
+			output.configure(jobParameters);
 		} catch (RuntimeException ex) {
 			throw new ProgramParametrizationException(ex.getMessage());
 		}

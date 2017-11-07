@@ -19,7 +19,7 @@
 package org.apache.flink.examples.scala.ml
 
 import org.apache.flink.api.common.functions._
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.examples.java.ml.util.LinearRegressionData
@@ -69,7 +69,7 @@ object LinearRegression {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     val parameters = env.fromCollection(LinearRegressionData.PARAMS map {
       case Array(x, y) => Params(x.asInstanceOf[Double], y.asInstanceOf[Double])

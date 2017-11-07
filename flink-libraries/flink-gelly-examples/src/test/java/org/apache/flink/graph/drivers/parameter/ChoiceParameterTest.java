@@ -18,7 +18,6 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.client.program.ProgramParametrizationException;
 
 import org.junit.Assert;
@@ -51,7 +50,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue("default").addChoices("c0", "c1", "c2");
 		Assert.assertEquals("[--choice <default | c0 | c1 | c2>]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--choice", "c1"}));
+		parameter.configure(getJobParameters(new String[]{"--choice", "c1"}));
 		Assert.assertEquals("c1", parameter.getValue());
 	}
 
@@ -60,7 +59,7 @@ extends ParameterTestBase {
 		parameter.setDefaultValue("default").addChoices("c0", "c1", "c2");
 		Assert.assertEquals("[--choice <default | c0 | c1 | c2>]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 		Assert.assertEquals("default", parameter.getValue());
 	}
 
@@ -71,7 +70,7 @@ extends ParameterTestBase {
 		parameter.addChoices("c0", "c1", "c2");
 		Assert.assertEquals("--choice <c0 | c1 | c2>", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--choice", "c2"}));
+		parameter.configure(getJobParameters(new String[]{"--choice", "c2"}));
 		Assert.assertEquals("c2", parameter.getValue());
 	}
 
@@ -83,6 +82,6 @@ extends ParameterTestBase {
 		expectedException.expect(ProgramParametrizationException.class);
 		expectedException.expectMessage("Must select a choice for option 'choice': '[c0, c1, c2]'");
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 	}
 }

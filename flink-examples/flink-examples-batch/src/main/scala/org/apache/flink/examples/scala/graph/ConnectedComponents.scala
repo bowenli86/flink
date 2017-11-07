@@ -18,7 +18,7 @@
 
 package org.apache.flink.examples.scala.graph
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.examples.java.graph.util.ConnectedComponentsData
 import org.apache.flink.util.Collector
@@ -73,7 +73,7 @@ object ConnectedComponents {
     val maxIterations: Int = params.getInt("iterations", 10)
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // read vertex and edge data
     // assign the initial components (equal to the vertex id)

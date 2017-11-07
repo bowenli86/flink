@@ -21,7 +21,7 @@ import java.lang.Iterable
 
 import org.apache.flink.api.common.functions.GroupReduceFunction
 import org.apache.flink.api.java.aggregation.Aggregations.SUM
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala._
 import org.apache.flink.examples.java.graph.util.PageRankData
 import org.apache.flink.util.Collector
@@ -79,7 +79,7 @@ object PageRankBasic {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // read input data
     val (pages, numPages) = getPagesDataSet(env, params)

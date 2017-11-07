@@ -18,8 +18,8 @@
 
 package org.apache.flink.graph.drivers.input;
 
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.client.program.ProgramParametrizationException;
 import org.apache.flink.graph.Graph;
 import org.apache.flink.graph.drivers.parameter.LongParameter;
@@ -37,8 +37,7 @@ import static org.apache.flink.graph.generator.CirculantGraph.MINIMUM_VERTEX_COU
 /**
  * Generate a {@link org.apache.flink.graph.generator.CirculantGraph}.
  */
-public class CirculantGraph
-extends GeneratedGraph<LongValue> {
+public class CirculantGraph extends GeneratedGraph<LongValue> {
 
 	private static final String PREFIX = "range";
 
@@ -54,18 +53,18 @@ extends GeneratedGraph<LongValue> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) throws ProgramParametrizationException {
-		super.configure(parameterTool);
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameters) throws ProgramParametrizationException {
+		super.configure(jobParameters);
 
 		// add offset ranges as ordered by offset ID (range0, range1, range2, ...)
 
 		Map<Integer, String> offsetRangeMap = new TreeMap<>();
 
 		// first parse all offset ranges into a sorted map
-		for (String key : parameterTool.toMap().keySet()) {
+		for (String key : jobParameters.toMap().keySet()) {
 			if (key.startsWith(PREFIX)) {
 				int offsetId = Integer.parseInt(key.substring(PREFIX.length()));
-				offsetRangeMap.put(offsetId, parameterTool.get(key));
+				offsetRangeMap.put(offsetId, jobParameters.toMap().get(key));
 			}
 		}
 

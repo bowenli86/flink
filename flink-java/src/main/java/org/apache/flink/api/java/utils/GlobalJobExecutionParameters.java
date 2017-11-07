@@ -16,40 +16,30 @@
  * limitations under the License.
  */
 
-package org.apache.flink.graph.drivers.parameter;
+package org.apache.flink.api.java.utils;
 
 import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.java.utils.JobParametersUtil;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * A {@link Parameter} storing a {@link Boolean}.
+ *
  */
-public class BooleanParameter
-extends SimpleParameter<Boolean> {
+public class GlobalJobExecutionParameters extends ExecutionConfig.GlobalJobParameters {
+	protected final Map<String, String> data;
 
-	/**
-	 * Set the parameter name and add this parameter to the list of parameters
-	 * stored by owner.
-	 *
-	 * @param owner the {@link Parameterized} using this {@link Parameter}
-	 * @param name the parameter name
-	 */
-	public BooleanParameter(ParameterizedBase owner, String name) {
-		super(owner, name);
+	public GlobalJobExecutionParameters(Map<String, String> data) {
+		this.data = data;
 	}
 
-	@Override
-	public String getUsage() {
-		return "[--" + name + "]";
+	public GlobalJobExecutionParameters(ParameterTool parameterTool) {
+		this.data = new HashMap<>(parameterTool.data);
 	}
 
+	// ------------------------- ExecutionConfig.UserConfig interface -------------------------
 	@Override
-	public void configure(ExecutionConfig.GlobalJobParameters jobParameters) {
-		value = JobParametersUtil.has(jobParameters, name);
-	}
-
-	@Override
-	public String toString() {
-		return Boolean.toString(value);
+	public Map<String, String> toMap() {
+		return data;
 	}
 }

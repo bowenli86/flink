@@ -18,7 +18,8 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.JobParametersUtil;
 import org.apache.flink.graph.drivers.parameter.IterationConvergence.Value;
 
 /**
@@ -62,18 +63,18 @@ implements Parameter<Value> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) {
-		if (!parameterTool.has("iterations") && !parameterTool.has("convergence_threshold")) {
+	public void configure(ExecutionConfig.GlobalJobParameters jobParam) {
+		if (!JobParametersUtil.has(jobParam, "iterations")
+				&& !JobParametersUtil.has(jobParam, "convergence_threshold")) {
 			// no configuration so use default iterations and maximum threshold
 			value.iterations = defaultIterations;
 			value.convergenceThreshold = Double.MAX_VALUE;
 		} else {
 			// use configured values and maximum default for unset values
-			value.iterations = parameterTool.getInt("iterations", Integer.MAX_VALUE);
-			Util.checkParameter(value.iterations > 0,
-				"iterations must be greater than zero");
+			value.iterations = JobParametersUtil.getInt(jobParam, "iterations", Integer.MAX_VALUE);
+			Util.checkParameter(value.iterations > 0, "iterations must be greater than zero");
 
-			value.convergenceThreshold = parameterTool.getDouble("convergence_threshold", Double.MAX_VALUE);
+			value.convergenceThreshold = JobParametersUtil.getDouble(jobParam, "convergence_threshold", Double.MAX_VALUE);
 			Util.checkParameter(value.convergenceThreshold > 0,
 				"convergence threshold must be greater than zero");
 		}

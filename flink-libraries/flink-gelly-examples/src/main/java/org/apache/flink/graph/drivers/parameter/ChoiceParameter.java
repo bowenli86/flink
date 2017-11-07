@@ -18,7 +18,8 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.JobParametersUtil;
 import org.apache.flink.client.program.ProgramParametrizationException;
 import org.apache.flink.util.Preconditions;
 
@@ -95,10 +96,10 @@ extends SimpleParameter<String> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) {
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameter) {
 		Preconditions.checkArgument(choices.size() > 0, "No choices provided");
 
-		String selected = parameterTool.get(name);
+		String selected = JobParametersUtil.get(jobParameter, name);
 
 		if (selected == null) {
 			if (hasDefaultValue) {

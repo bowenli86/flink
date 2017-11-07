@@ -18,7 +18,8 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.JobParametersUtil;
 import org.apache.flink.client.program.ProgramParametrizationException;
 import org.apache.flink.graph.Graph;
 import org.apache.flink.graph.drivers.parameter.Simplify.Ordering;
@@ -76,8 +77,8 @@ implements Parameter<Ordering> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) {
-		String ordering = parameterTool.get("simplify");
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameter) {
+		String ordering = JobParametersUtil.get(jobParameter, "simplify");
 
 		if (ordering == null) {
 			value = Ordering.NONE;
@@ -87,7 +88,7 @@ implements Parameter<Ordering> {
 					value = Ordering.DIRECTED;
 					break;
 				case "undirected":
-					value = parameterTool.has("clip_and_flip") ? Ordering.UNDIRECTED_CLIP_AND_FLIP : Ordering.UNDIRECTED;
+					value = JobParametersUtil.has(jobParameter, "clip_and_flip") ? Ordering.UNDIRECTED_CLIP_AND_FLIP : Ordering.UNDIRECTED;
 					break;
 				default:
 					throw new ProgramParametrizationException(

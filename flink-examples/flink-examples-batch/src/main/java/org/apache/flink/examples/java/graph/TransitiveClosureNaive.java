@@ -25,6 +25,7 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.examples.java.graph.util.ConnectedComponentsData;
 import org.apache.flink.util.Collector;
@@ -53,7 +54,7 @@ public class TransitiveClosureNaive {
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		// make parameters available in the web interface
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		final int maxIterations = params.getInt("iterations", 10);
 

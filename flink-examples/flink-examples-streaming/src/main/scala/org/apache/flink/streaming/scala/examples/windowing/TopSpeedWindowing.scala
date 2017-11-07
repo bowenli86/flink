@@ -22,7 +22,7 @@ package org.apache.flink.streaming.scala.examples.windowing
 import java.beans.Transient
 import java.util.concurrent.TimeUnit
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
@@ -61,7 +61,7 @@ object TopSpeedWindowing {
     val params = ParameterTool.fromArgs(args)
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
     env.setParallelism(1)
 

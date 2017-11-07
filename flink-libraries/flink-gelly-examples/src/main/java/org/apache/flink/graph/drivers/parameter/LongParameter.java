@@ -18,7 +18,8 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.utils.JobParametersUtil;
 
 /**
  * A {@link Parameter} storing a {@link Long} within <tt>min</tt> and
@@ -104,12 +105,12 @@ extends SimpleParameter<Long> {
 	}
 
 	@Override
-	public void configure(ParameterTool parameterTool) {
-		if (hasDefaultValue && !parameterTool.has(name)) {
+	public void configure(ExecutionConfig.GlobalJobParameters jobParameters) {
+		if (hasDefaultValue && !JobParametersUtil.has(jobParameters, name)) {
 			// skip checks for min and max when using default value
 			value = defaultValue;
 		} else {
-			value = parameterTool.getLong(name);
+			value = JobParametersUtil.getLong(jobParameters, name);
 
 			if (hasMinimumValue) {
 				Util.checkParameter(value >= minimumValue,

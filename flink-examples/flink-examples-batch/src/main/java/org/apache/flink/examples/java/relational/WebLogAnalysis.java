@@ -26,6 +26,7 @@ import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFieldsFir
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.utils.GlobalJobExecutionParameters;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.examples.java.relational.util.WebLogData;
 import org.apache.flink.util.Collector;
@@ -99,7 +100,7 @@ public class WebLogAnalysis {
 
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-		env.getConfig().setGlobalJobParameters(params);
+		env.getConfig().setGlobalJobParameters(new GlobalJobExecutionParameters(params));
 
 		// get input data
 		DataSet<Tuple2<String, String>> documents = getDocumentsDataSet(env, params);

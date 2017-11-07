@@ -32,8 +32,8 @@ import java.util.List;
  * @param <K> graph ID type
  */
 public abstract class GeneratedGraph<K>
-extends InputBase<K, NullValue, NullValue>
-implements Transformable {
+			extends InputBase<K, NullValue, NullValue>
+			implements Transformable {
 
 	@Override
 	public List<Transform> getTransformers() {

@@ -18,7 +18,7 @@
 
 package org.apache.flink.streaming.scala.examples.join
 
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
@@ -64,7 +64,7 @@ object WindowJoin {
     env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime)
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // // create the data sources for both grades and salaries
     val grades = WindowJoinSampleData.getGradeSource(env, rate)

@@ -21,7 +21,7 @@ package org.apache.flink.examples.scala.graph
 import org.apache.flink.api.common.functions.GroupReduceFunction
 import org.apache.flink.api.common.operators.Order
 import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields
-import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.api.java.utils.{GlobalJobExecutionParameters, ParameterTool}
 import org.apache.flink.api.scala.{ExecutionEnvironment, _}
 import org.apache.flink.examples.java.graph.util.EnumTrianglesData
 import org.apache.flink.util.Collector
@@ -75,7 +75,7 @@ object EnumTriangles {
     val env = ExecutionEnvironment.getExecutionEnvironment
 
     // make parameters available in the web interface
-    env.getConfig.setGlobalJobParameters(params)
+    env.getConfig.setGlobalJobParameters(new GlobalJobExecutionParameters(params))
 
     // read input data
     val edges =

@@ -18,8 +18,6 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +41,7 @@ extends ParameterTestBase {
 	public void testTrue() {
 		Assert.assertEquals("[--test]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{"--test"}));
+		parameter.configure(getJobParameters(new String[]{"--test"}));
 		Assert.assertEquals(true, parameter.getValue());
 	}
 
@@ -51,7 +49,7 @@ extends ParameterTestBase {
 	public void testFalse() {
 		Assert.assertEquals("[--test]", parameter.getUsage());
 
-		parameter.configure(ParameterTool.fromArgs(new String[]{}));
+		parameter.configure(getJobParameters(new String[]{}));
 		Assert.assertEquals(false, parameter.getValue());
 	}
 }

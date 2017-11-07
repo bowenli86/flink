@@ -18,7 +18,7 @@
 
 package org.apache.flink.graph.drivers.parameter;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.client.program.ProgramParametrizationException;
 
 /**
@@ -44,8 +44,8 @@ public interface Parameterized {
 	/**
 	 * Read parameter values from the command-line arguments.
 	 *
-	 * @param parameterTool parameter parser
+	 * @param jobParameters parameter parser
 	 * @throws ProgramParametrizationException when configuration is invalid
 	 */
-	void configure(ParameterTool parameterTool) throws ProgramParametrizationException;
+	void configure(ExecutionConfig.GlobalJobParameters jobParameters) throws ProgramParametrizationException;
 }
