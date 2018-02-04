@@ -139,9 +139,7 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 	private <N, V> StateTable<K, N, V> tryRegisterStateTable(
 			TypeSerializer<N> namespaceSerializer, StateDescriptor<?, V> stateDesc) throws StateMigrationException {
 
-		return tryRegisterStateTable(
-				stateDesc.getName(), stateDesc.getType(),
-				namespaceSerializer, stateDesc.getSerializer());
+		return tryRegisterStateTable(stateDesc.getName(), stateDesc.getType(), namespaceSerializer, stateDesc.getSerializer());
 	}
 
 	private <N, V> StateTable<K, N, V> tryRegisterStateTable(
@@ -597,6 +595,12 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 			sum += stateTable.size();
 		}
 		return sum;
+	}
+
+	@VisibleForTesting
+	@Override
+	public void vacuumExpiredKeys() {
+		// Do nothing for now
 	}
 
 	/**

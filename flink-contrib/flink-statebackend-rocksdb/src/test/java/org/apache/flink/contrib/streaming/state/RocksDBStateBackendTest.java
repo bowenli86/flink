@@ -74,9 +74,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -466,6 +468,31 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 				backend.dispose();
 			}
 		}
+	}
+
+	@Test
+	public void testValueStateTtl() throws Exception {
+		AbstractKeyedStateBackend<Integer> backend = createKeyedBackend(IntSerializer.INSTANCE);
+
+		ValueStateDescriptor<String> kvId1 = new ValueStateDescriptor<>("id1", String.class, 0);
+		ValueStateDescriptor<String> kvId2 = new ValueStateDescriptor<>("id2", String.class, 2);
+
+		ValueState<String> state1 = backend.getPartitionedState(VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, kvId1);
+		ValueState<String> state2 = backend.getPartitionedState(VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, kvId2);
+
+		backend.setCurrentKey(1);
+		state1.update("1");
+		assertEquals(state1.value(), "1");
+		state2.update("2");
+		assertEquals(state2.value(), "2");
+
+		TimeUnit.SECONDS.sleep(3);
+
+		backend.vacuumExpiredKeys();
+
+		assertEquals(state1.value(), "1");
+		assertNull(state2.value());
+		backend.dispose();
 	}
 
 	private void checkRemove(IncrementalKeyedStateHandle remove, SharedStateRegistry registry) throws Exception {

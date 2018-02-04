@@ -970,15 +970,12 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 			createKeyedBackend(IntSerializer.INSTANCE);
 		final Integer namespace = 1;
 
-		final ValueStateDescriptor<String> kvId =
-			new ValueStateDescriptor<>("id", String.class);
+		final ValueStateDescriptor<String> kvId = new ValueStateDescriptor<>("id", String.class);
 
 		final TypeSerializer<Integer> keySerializer = IntSerializer.INSTANCE;
-		final TypeSerializer<Integer> namespaceSerializer =
-			IntSerializer.INSTANCE;
+		final TypeSerializer<Integer> namespaceSerializer = IntSerializer.INSTANCE;
 
-		final ValueState<String> state = backend
-			.getPartitionedState(namespace, IntSerializer.INSTANCE, kvId);
+		final ValueState<String> state = backend.getPartitionedState(namespace, IntSerializer.INSTANCE, kvId);
 
 		// this is only available after the backend initialized the serializer
 		final TypeSerializer<String> valueSerializer = kvId.getSerializer();
@@ -999,9 +996,7 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 		assertEquals("2", state.value());
 
 		// query another key and namespace
-		assertNull(getSerializedValue(kvState, 3, keySerializer,
-			namespace, IntSerializer.INSTANCE,
-			valueSerializer));
+		assertNull(getSerializedValue(kvState, 3, keySerializer, namespace, IntSerializer.INSTANCE, valueSerializer));
 
 		// the state should not have changed!
 		assertEquals("2", state.value());
@@ -1018,8 +1013,7 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 		final int key2 = 10;
 		backend.setCurrentKey(key2);
 		assertNull(state.value());
-		assertNull(getSerializedValue(kvState, key2, keySerializer,
-			namespace, namespaceSerializer, valueSerializer));
+		assertNull(getSerializedValue(kvState, key2, keySerializer, namespace, namespaceSerializer, valueSerializer));
 		state.update("1");
 
 		final CheckedThread getter = new CheckedThread("State getter") {

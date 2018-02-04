@@ -182,8 +182,8 @@ public final class MathUtils {
 	}
 
 	/**
-	 * Bit-mixing for pseudo-randomization of integers (e.g., to guard against bad hash functions). Implementation is
-	 * from Murmur's 32 bit finalizer.
+	 * Bit-mixing for pseudo-randomization of integers (e.g., to guard against bad hash functions).
+	 * Implementation is from Murmur's 32 bit finalizer.
 	 *
 	 * @param in the input value
 	 * @return the bit-mixed output value

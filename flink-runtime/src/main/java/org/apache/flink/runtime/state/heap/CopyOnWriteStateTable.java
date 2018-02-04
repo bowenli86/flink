@@ -69,7 +69,7 @@ import java.util.stream.StreamSupport;
  * 5) We got rid of having multiple nested tables, one for each key-group. Instead, we partition state into key-groups
  * on-the-fly, during the asynchronous part of a snapshot.
  * <p>
- * 6) Currently, a state table can only grow, but never shrinks on low load. We could easily add this if required.
+ * 6) Currently, a state table can only grow, but never shrinks, on low load. We could easily add this if required.
  * <p>
  * 7) Heap based state backends like this can easily cause a lot of GC activity. Besides using G1 as garbage collector,
  * we should provide an additional state backend that operates on off-heap memory. This would sacrifice peak performance
@@ -118,10 +118,9 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	private static final int MIN_TRANSFERRED_PER_INCREMENTAL_REHASH = 4;
 
 	/**
-	 * An empty table shared by all zero-capacity maps (typically from default
-	 * constructor). It is never written to, and replaced on first put. Its size
-	 * is set to half the minimum, so that the first resize will create a
-	 * minimum-sized table.
+	 * An empty table shared by all zero-capacity maps (typically from default constructor).
+	 * It is never written to, and replaced on first put.
+	 * Its size is set to half the minimum, so that the first resize will create a minimum-sized table.
 	 */
 	private static final StateEntry<?, ?, ?>[] EMPTY_TABLE = new StateTableEntry[MINIMUM_CAPACITY >>> 1];
 
@@ -181,14 +180,12 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	/**
 	 * The {@link CopyOnWriteStateTable} is rehashed when its size exceeds this threshold.
 	 * The value of this field is generally .75 * capacity, except when
-	 * the capacity is zero, as described in the EMPTY_TABLE declaration
-	 * above.
+	 * the capacity is zero, as described in the EMPTY_TABLE declaration above.
 	 */
 	private int threshold;
 
 	/**
-	 * Incremented by "structural modifications" to allow (best effort)
-	 * detection of concurrent modification.
+	 * Incremented by "structural modifications" to allow (best effort) detection of concurrent modification.
 	 */
 	private int modCount;
 
@@ -393,9 +390,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		final StateEntry<K, N, S> e = putEntry(key, namespace);
 
 		// copy-on-write check for state
-		S oldState = (e.stateVersion < highestRequiredSnapshotVersion) ?
-				getStateSerializer().copy(e.state) :
-				e.state;
+		S oldState = (e.stateVersion < highestRequiredSnapshotVersion) ? getStateSerializer().copy(e.state) : e.state;
 
 		e.state = value;
 		e.stateVersion = stateTableVersion;
@@ -430,9 +425,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 
 		return e != null ?
 				// copy-on-write check for state
-				(e.stateVersion < highestRequiredSnapshotVersion ?
-						getStateSerializer().copy(e.state) :
-						e.state) :
+				(e.stateVersion < highestRequiredSnapshotVersion ? getStateSerializer().copy(e.state) : e.state) :
 				null;
 	}
 
@@ -445,11 +438,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @throws Exception exception that happen on applying the function.
 	 * @see #transform(Object, Object, StateTransformationFunction).
 	 */
-	<T> void transform(
-			K key,
-			N namespace,
-			T value,
-			StateTransformationFunction<S, T> transformation) throws Exception {
+	<T> void transform(K key, N namespace, T value, StateTransformationFunction<S, T> transformation) throws Exception {
 
 		final StateEntry<K, N, S> entry = putEntry(key, namespace);
 
@@ -523,11 +512,6 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		return null;
 	}
 
-	private void checkKeyNamespacePreconditions(K key, N namespace) {
-		Preconditions.checkNotNull(key, "No key set. This method should not be called outside of a keyed context.");
-		Preconditions.checkNotNull(namespace, "Provided namespace is null.");
-	}
-
 	// Meta data setter / getter and toString --------------------------------------------------------------------------
 
 	@Override
@@ -573,15 +557,15 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	}
 
 	/**
-	 * Creates (combined) copy of the table arrays for a snapshot. This method must be called by the same Thread that
-	 * does modifications to the {@link CopyOnWriteStateTable}.
+	 * Creates (combined) copy of the table arrays for a snapshot.
+	 * This method must be called by the same Thread that does modifications to the {@link CopyOnWriteStateTable}.
 	 */
 	@VisibleForTesting
 	@SuppressWarnings("unchecked")
 	StateEntry<K, N, S>[] snapshotTableArrays() {
 
 		// we guard against concurrent modifications of highestRequiredSnapshotVersion between snapshot and release.
-		// Only stale reads of from the result of #releaseSnapshot calls are ok. This is why we must call this method
+		// Only stale reads from the result of #releaseSnapshot calls are ok. This is why we must call this method
 		// from the same thread that does all the modifications to the table.
 		synchronized (snapshotVersions) {
 
@@ -644,7 +628,6 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 			K key,
 			N namespace,
 			int hash) {
-
 		// small optimization that aims to avoid holding references on duplicate namespace objects
 		if (namespace.equals(lastNamespace)) {
 			namespace = lastNamespace;
@@ -717,8 +700,8 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * incremental rehashing is in progress.
 	 */
 	private int computeHashForOperationAndDoIncrementalRehash(K key, N namespace) {
-
-		checkKeyNamespacePreconditions(key, namespace);
+		Preconditions.checkNotNull(key, "No key set. This method should not be called outside of a keyed context.");
+		Preconditions.checkNotNull(namespace, "Provided namespace is null.");
 
 		if (isRehashing()) {
 			incrementalRehash();
@@ -968,7 +951,6 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		}
 		return count;
 	}
-
 
 	// StateEntryIterator  ---------------------------------------------------------------------------------------------
 

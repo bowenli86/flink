@@ -420,4 +420,9 @@ public abstract class AbstractKeyedStateBackend<K>
 	@VisibleForTesting
 	public abstract int numStateEntries();
 
+	/**
+	 * Cleans up keys with TTL that has expired
+	 */
+	@VisibleForTesting
+	public abstract void vacuumExpiredKeys();
 }

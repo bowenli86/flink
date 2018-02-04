@@ -38,6 +38,7 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 
 	private final StateDescriptor.Type stateType;
 	private final String name;
+	private final int ttlInSec;
 	private final TypeSerializer<N> namespaceSerializer;
 	private final TypeSerializer<S> stateSerializer;
 
@@ -47,10 +48,21 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 			TypeSerializer<N> namespaceSerializer,
 			TypeSerializer<S> stateSerializer) {
 
+		this(stateType, name, 0, namespaceSerializer, stateSerializer);
+	}
+
+	public RegisteredKeyedBackendStateMetaInfo(
+			StateDescriptor.Type stateType,
+			String name,
+			int ttlInSec,
+			TypeSerializer<N> namespaceSerializer,
+			TypeSerializer<S> stateSerializer) {
+
 		this.stateType = checkNotNull(stateType);
 		this.name = checkNotNull(name);
 		this.namespaceSerializer = checkNotNull(namespaceSerializer);
 		this.stateSerializer = checkNotNull(stateSerializer);
+		this.ttlInSec = ttlInSec;
 	}
 
 	public StateDescriptor.Type getStateType() {
@@ -59,6 +71,10 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 
 	public String getName() {
 		return name;
+	}
+
+	public int getTtlInSec() {
+		return ttlInSec;
 	}
 
 	public TypeSerializer<N> getNamespaceSerializer() {
@@ -95,7 +111,7 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 			return false;
 		}
 
-		if (!getName().equals(that.getName())) {
+		if (!getName().equals(that.getName()) || getTtlInSec() != that.getTtlInSec()) {
 			return false;
 		}
 
@@ -108,6 +124,7 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 		return "RegisteredKeyedBackendStateMetaInfo{" +
 				"stateType=" + stateType +
 				", name='" + name + '\'' +
+				", ttlInSec=" + ttlInSec +
 				", namespaceSerializer=" + namespaceSerializer +
 				", stateSerializer=" + stateSerializer +
 				'}';
@@ -116,6 +133,7 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 	@Override
 	public int hashCode() {
 		int result = getName().hashCode();
+		result = 31 * result + ttlInSec;
 		result = 31 * result + getStateType().hashCode();
 		result = 31 * result + getNamespaceSerializer().hashCode();
 		result = 31 * result + getStateSerializer().hashCode();
@@ -129,6 +147,7 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 
 		private StateDescriptor.Type stateType;
 		private String name;
+		private int ttlInSec;
 		private TypeSerializer<N> namespaceSerializer;
 		private TypeSerializer<S> stateSerializer;
 		private TypeSerializerConfigSnapshot namespaceSerializerConfigSnapshot;
@@ -145,8 +164,27 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 				TypeSerializerConfigSnapshot namespaceSerializerConfigSnapshot,
 				TypeSerializerConfigSnapshot stateSerializerConfigSnapshot) {
 
+			this(stateType,
+					name,
+					0,
+					namespaceSerializer,
+					stateSerializer,
+					namespaceSerializerConfigSnapshot,
+					stateSerializerConfigSnapshot);
+		}
+
+		private Snapshot(
+				StateDescriptor.Type stateType,
+				String name,
+				int ttlInSec,
+				TypeSerializer<N> namespaceSerializer,
+				TypeSerializer<S> stateSerializer,
+				TypeSerializerConfigSnapshot namespaceSerializerConfigSnapshot,
+				TypeSerializerConfigSnapshot stateSerializerConfigSnapshot) {
+
 			this.stateType = Preconditions.checkNotNull(stateType);
 			this.name = Preconditions.checkNotNull(name);
+			this.ttlInSec = ttlInSec;
 			this.namespaceSerializer = Preconditions.checkNotNull(namespaceSerializer);
 			this.stateSerializer = Preconditions.checkNotNull(stateSerializer);
 			this.namespaceSerializerConfigSnapshot = Preconditions.checkNotNull(namespaceSerializerConfigSnapshot);
@@ -163,6 +201,10 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 
 		public String getName() {
 			return name;
+		}
+
+		public int getTtlInSec() {
+			return ttlInSec;
 		}
 
 		void setName(String name) {
@@ -217,7 +259,7 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 				return false;
 			}
 
-			if (!getName().equals(that.getName())) {
+			if (!getName().equals(that.getName()) || getTtlInSec() != that.getTtlInSec()) {
 				return false;
 			}
 
@@ -232,6 +274,8 @@ public class RegisteredKeyedBackendStateMetaInfo<N, S> {
 		public int hashCode() {
 			// need to check for nulls because serializer and config snapshots may be null on restore
 			int result = getName().hashCode();
+
+			result = 31 * result + ttlInSec;
 			result = 31 * result + getStateType().hashCode();
 			result = 31 * result + (getNamespaceSerializer() != null ? getNamespaceSerializer().hashCode() : 0);
 			result = 31 * result + (getStateSerializer() != null ? getStateSerializer().hashCode() : 0);

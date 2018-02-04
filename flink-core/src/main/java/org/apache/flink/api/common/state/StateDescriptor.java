@@ -82,11 +82,14 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	/** Name for queries against state created from this StateDescriptor. */
 	private String queryableStateName;
 
-	/** The default value returned by the state when no other value is bound to a key */
+	/** The default value returned by the state when no other value is bound to a key. */
 	protected transient T defaultValue;
 
+	/** Time-to-live in seconds for the key. */
+	protected int ttlInSec;
+
 	/** The type information describing the value type. Only used to lazily create the serializer
-	 * and dropped during serialization */
+	 * and dropped during serialization. */
 	private transient TypeInformation<T> typeInfo;
 
 	// ------------------------------------------------------------------------
@@ -96,13 +99,25 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 *
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param serializer The type serializer for the values in the state.
-	 * @param defaultValue The default value that will be set when requesting state without setting
-	 *                     a value before.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue) {
+		this(name, serializer, defaultValue, 0);
+	}
+
+	/**
+	 * Create a new {@code StateDescriptor} with the given name and the given type serializer.
+	 *
+	 * @param name The name of the {@code StateDescriptor}.
+	 * @param serializer The type serializer for the values in the state.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
+	 * @param ttlInSec The ttl of the value.
+	 */
+	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue, int ttlInSec) {
 		this.name = requireNonNull(name, "name must not be null");
 		this.serializer = requireNonNull(serializer, "serializer must not be null");
 		this.defaultValue = defaultValue;
+		this.ttlInSec = ttlInSec;
 	}
 
 	/**
@@ -110,13 +125,25 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 *
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param typeInfo The type information for the values in the state.
-	 * @param defaultValue The default value that will be set when requesting state without setting
-	 *                     a value before.   
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue) {
+		this(name, typeInfo, defaultValue, 0);
+	}
+
+	/**
+	 * Create a new {@code StateDescriptor} with the given name and the given type information.
+	 *
+	 * @param name The name of the {@code StateDescriptor}.
+	 * @param typeInfo The type information for the values in the state.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
+	 * @param ttlInSec The ttl of the value.
+	 */
+	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue, int ttlInSec) {
 		this.name = requireNonNull(name, "name must not be null");
 		this.typeInfo = requireNonNull(typeInfo, "type information must not be null");
 		this.defaultValue = defaultValue;
+		this.ttlInSec = ttlInSec;
 	}
 
 	/**
@@ -127,10 +154,24 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 *
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param type The class of the type of values in the state.
-	 * @param defaultValue The default value that will be set when requesting state without setting
-	 *                     a value before.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, Class<T> type, T defaultValue) {
+		this(name, type, defaultValue, 0);
+	}
+
+	/**
+	 * Create a new {@code StateDescriptor} with the given name and the given type information.
+	 *
+	 * <p>If this constructor fails (because it is not possible to describe the type via a class),
+	 * consider using the {@link #StateDescriptor(String, TypeInformation, Object)} constructor.
+	 *
+	 * @param name The name of the {@code StateDescriptor}.
+	 * @param type The class of the type of values in the state.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
+	 * @param ttlInSec The ttl of the value.
+	 */
+	protected StateDescriptor(String name, Class<T> type, T defaultValue, int ttlInSec) {
 		this.name = requireNonNull(name, "name must not be null");
 		requireNonNull(type, "type class must not be null");
 
@@ -139,13 +180,14 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 		} catch (Exception e) {
 			throw new RuntimeException(
 					"Could not create the type information for '" + type.getName() + "'. " +
-					"The most common reason is failure to infer the generic type information, due to Java's type erasure. " +
-					"In that case, please pass a 'TypeHint' instead of a class to describe the type. " +
-					"For example, to describe 'Tuple2<String, String>' as a generic type, use " +
-					"'new PravegaDeserializationSchema<>(new TypeHint<Tuple2<String, String>>(){}, serializer);'", e);
+							"The most common reason is failure to infer the generic type information, due to Java's type erasure. " +
+							"In that case, please pass a 'TypeHint' instead of a class to describe the type. " +
+							"For example, to describe 'Tuple2<String, String>' as a generic type, use " +
+							"'new PravegaDeserializationSchema<>(new TypeHint<Tuple2<String, String>>(){}, serializer);'", e);
 		}
 
 		this.defaultValue = defaultValue;
+		this.ttlInSec = ttlInSec;
 	}
 
 	// ------------------------------------------------------------------------
@@ -170,6 +212,13 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 		} else {
 			return null;
 		}
+	}
+
+	/**
+	 * Returns the TTL in seconds of the value.
+	 * */
+	public int getTtlInSec() {
+		return ttlInSec;
 	}
 
 	/**

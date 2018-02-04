@@ -102,6 +102,20 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 	}
 
 	/**
+	 * Creates a new {@code ValueStateDescriptor} with the given name and type
+	 *
+	 * <p>If this constructor fails (because it is not possible to describe the type via a class),
+	 * consider using the {@link #ValueStateDescriptor(String, TypeInformation)} constructor.
+	 *
+	 * @param name The (unique) name for the state.
+	 * @param typeClass The type of the values in the state.
+	 * @param ttlInSec The ttl of the value.
+	 */
+	public ValueStateDescriptor(String name, Class<T> typeClass, int ttlInSec) {
+		super(name, typeClass, null, ttlInSec);
+	}
+
+	/**
 	 * Creates a new {@code ValueStateDescriptor} with the given name and type.
 	 *
 	 * @param name The (unique) name for the state.
@@ -112,6 +126,17 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 	}
 
 	/**
+	 * Creates a new {@code ValueStateDescriptor} with the given name and type.
+	 *
+	 * @param name The (unique) name for the state.
+	 * @param typeInfo The type of the values in the state.
+	 * @param ttlInSec The ttl of the value.
+	 */
+	public ValueStateDescriptor(String name, TypeInformation<T> typeInfo, int ttlInSec) {
+		super(name, typeInfo, null, ttlInSec);
+	}
+
+	/**
 	 * Creates a new {@code ValueStateDescriptor} with the given name and the specific serializer.
 	 *
 	 * @param name The (unique) name for the state.
@@ -119,6 +144,17 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 	 */
 	public ValueStateDescriptor(String name, TypeSerializer<T> typeSerializer) {
 		super(name, typeSerializer, null);
+	}
+
+	/**
+	 * Creates a new {@code ValueStateDescriptor} with the given name and the specific serializer.
+	 *
+	 * @param name The (unique) name for the state.
+	 * @param typeSerializer The type serializer of the values in the state.
+	 * @param ttlInSec The ttl of the value.
+	 */
+	public ValueStateDescriptor(String name, TypeSerializer<T> typeSerializer, int ttlInSec) {
+		super(name, typeSerializer, null, ttlInSec);
 	}
 
 	// ------------------------------------------------------------------------
@@ -155,6 +191,7 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 		return "ValueStateDescriptor{" +
 				"name=" + name +
 				", defaultValue=" + defaultValue +
+				", ttl=" + ttlInSec +
 				", serializer=" + serializer +
 				'}';
 	}
