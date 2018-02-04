@@ -1057,7 +1057,7 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 		this.db = openDB(instanceRocksDBPath.getAbsolutePath(),
 							Collections.emptyList(),
 							columnFamilyHandles,
-							Arrays.asList(0));
+							Arrays.asList());
 		this.defaultColumnFamily = columnFamilyHandles.get(0);
 	}
 
@@ -1065,15 +1065,16 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 			String path,
 			List<ColumnFamilyDescriptor> stateColumnFamilyDescriptors,
 			List<ColumnFamilyHandle> stateColumnFamilyHandles,
-			List<Integer> ttlValues) throws IOException {
+			List<Integer> stateTtlValues) throws IOException {
 
-		List<ColumnFamilyDescriptor> columnFamilyDescriptors =
-				new ArrayList<>(1 + stateColumnFamilyDescriptors.size());
-
+		List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>(1 + stateColumnFamilyDescriptors.size());
 		columnFamilyDescriptors.addAll(stateColumnFamilyDescriptors);
+		List<Integer> ttlValues = new ArrayList<>(1 + stateTtlValues.size());
+		ttlValues.addAll(stateTtlValues);
 
 		// we add the required descriptor for the default CF in last position.
 		columnFamilyDescriptors.add(new ColumnFamilyDescriptor(DEFAULT_COLUMN_FAMILY_NAME_BYTES, columnOptions));
+		ttlValues.add(0);
 
 		TtlDB dbRef;
 
@@ -1368,20 +1369,15 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 			}
 		}
 
-		private void restoreInstance(
-			IncrementalKeyedStateHandle restoreStateHandle,
-			boolean hasExtraKeys) throws Exception {
-
+		private void restoreInstance(IncrementalKeyedStateHandle restoreStateHandle, boolean hasExtraKeys) throws Exception {
 			// read state data
 			Path restoreInstancePath = new Path(
 				stateBackend.instanceBasePath.getAbsolutePath(),
 				UUID.randomUUID().toString());
 
 			try {
-				final Map<StateHandleID, StreamStateHandle> sstFiles =
-					restoreStateHandle.getSharedState();
-				final Map<StateHandleID, StreamStateHandle> miscFiles =
-					restoreStateHandle.getPrivateState();
+				final Map<StateHandleID, StreamStateHandle> sstFiles = restoreStateHandle.getSharedState();
+				final Map<StateHandleID, StreamStateHandle> miscFiles = restoreStateHandle.getPrivateState();
 
 				readAllStateData(sstFiles, restoreInstancePath);
 				readAllStateData(miscFiles, restoreInstancePath);
@@ -1390,27 +1386,27 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 				List<RegisteredKeyedBackendStateMetaInfo.Snapshot<?, ?>> stateMetaInfoSnapshots =
 					readMetaData(restoreStateHandle.getMetaStateHandle());
 
-				List<ColumnFamilyDescriptor> columnFamilyDescriptors =
-					new ArrayList<>(1 + stateMetaInfoSnapshots.size());
+				List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>(1 + stateMetaInfoSnapshots.size());
+				List<Integer> ttlValues = new ArrayList<>(1 + stateMetaInfoSnapshots.size());
 
 				for (RegisteredKeyedBackendStateMetaInfo.Snapshot<?, ?> stateMetaInfoSnapshot : stateMetaInfoSnapshots) {
-
 					ColumnFamilyDescriptor columnFamilyDescriptor = new ColumnFamilyDescriptor(
 						stateMetaInfoSnapshot.getName().getBytes(ConfigConstants.DEFAULT_CHARSET),
 						stateBackend.columnOptions);
 
 					columnFamilyDescriptors.add(columnFamilyDescriptor);
+					ttlValues.add(stateMetaInfoSnapshot.getTtlInSec());
 					stateBackend.restoredKvStateMetaInfos.put(stateMetaInfoSnapshot.getName(), stateMetaInfoSnapshot);
 				}
 
 				if (hasExtraKeys) {
-					List<ColumnFamilyHandle> columnFamilyHandles =
-						new ArrayList<>(1 + columnFamilyDescriptors.size());
+					List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>(1 + columnFamilyDescriptors.size());
+
 					try (TtlDB restoreDb = stateBackend.openDB(
-							restoreInstancePath.getPath(),
-							columnFamilyDescriptors,
-							columnFamilyHandles,
-							Arrays.asList(0))) {
+												restoreInstancePath.getPath(),
+												columnFamilyDescriptors,
+												columnFamilyHandles,
+												ttlValues)) {
 
 						try {
 							// iterating only the requested descriptors automatically skips the default column family handle
@@ -1492,14 +1488,13 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 					createFileHardLinksInRestorePath(sstFiles, restoreInstancePath);
 					createFileHardLinksInRestorePath(miscFiles, restoreInstancePath);
 
-					List<ColumnFamilyHandle> columnFamilyHandles =
-						new ArrayList<>(1 + columnFamilyDescriptors.size());
+					List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>(1 + columnFamilyDescriptors.size());
 
 					stateBackend.db = stateBackend.openDB(
 							stateBackend.instanceRocksDBPath.getAbsolutePath(),
 							columnFamilyDescriptors,
 							columnFamilyHandles,
-							Arrays.asList(0));
+							ttlValues);
 
 					// extract and store the default column family which is located at the last index
 					stateBackend.defaultColumnFamily = columnFamilyHandles.remove(columnFamilyHandles.size() - 1);
