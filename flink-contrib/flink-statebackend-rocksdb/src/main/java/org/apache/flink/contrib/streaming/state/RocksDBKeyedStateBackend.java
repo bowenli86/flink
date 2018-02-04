@@ -1989,6 +1989,19 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 		return count;
 	}
 
+	@VisibleForTesting
+	@Override
+	public void vacuumExpiredKeys() {
+		try {
+			for (Tuple2<ColumnFamilyHandle, RegisteredKeyedBackendStateMetaInfo<?, ?>> tuple2 : kvStateInformation.values()) {
+				db.compactRange(tuple2.f0);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Failed compacting TtlDB", e);
+		}
+	}
+
 	private static class RocksIteratorWrapper<K> implements Iterator<K> {
 		private final RocksIterator iterator;
 		private final String state;
