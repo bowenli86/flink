@@ -20,6 +20,7 @@ package org.apache.flink.api.common.state;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
@@ -82,11 +83,14 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	/** Name for queries against state created from this StateDescriptor. */
 	private String queryableStateName;
 
-	/** The default value returned by the state when no other value is bound to a key */
+	/** The default value returned by the state when no other value is bound to a key. */
 	protected transient T defaultValue;
 
+	/** Time-to-live for the key. */
+	protected Time ttl;
+
 	/** The type information describing the value type. Only used to lazily create the serializer
-	 * and dropped during serialization */
+	 * and dropped during serialization. */
 	private transient TypeInformation<T> typeInfo;
 
 	// ------------------------------------------------------------------------
@@ -96,13 +100,25 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 *
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param serializer The type serializer for the values in the state.
-	 * @param defaultValue The default value that will be set when requesting state without setting
-	 *                     a value before.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue) {
+		this(name, serializer, defaultValue, null);
+	}
+
+	/**
+	 * Create a new {@code StateDescriptor} with the given name and the given type serializer.
+	 *
+	 * @param name The name of the {@code StateDescriptor}.
+	 * @param serializer The type serializer for the values in the state.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
+	 * @param ttl The ttl of the value.
+	 */
+	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue, Time ttl) {
 		this.name = requireNonNull(name, "name must not be null");
 		this.serializer = requireNonNull(serializer, "serializer must not be null");
 		this.defaultValue = defaultValue;
+		this.ttl = ttl;
 	}
 
 	/**
@@ -110,13 +126,25 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 *
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param typeInfo The type information for the values in the state.
-	 * @param defaultValue The default value that will be set when requesting state without setting
-	 *                     a value before.   
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue) {
+		this(name, typeInfo, defaultValue, null);
+	}
+
+	/**
+	 * Create a new {@code StateDescriptor} with the given name and the given type information.
+	 *
+	 * @param name The name of the {@code StateDescriptor}.
+	 * @param typeInfo The type information for the values in the state.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
+	 * @param ttl The ttl of the value.
+	 */
+	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue, Time ttl) {
 		this.name = requireNonNull(name, "name must not be null");
 		this.typeInfo = requireNonNull(typeInfo, "type information must not be null");
 		this.defaultValue = defaultValue;
+		this.ttl = ttl;
 	}
 
 	/**
@@ -127,10 +155,24 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 *
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param type The class of the type of values in the state.
-	 * @param defaultValue The default value that will be set when requesting state without setting
-	 *                     a value before.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, Class<T> type, T defaultValue) {
+		this(name, type, defaultValue, null);
+	}
+
+	/**
+	 * Create a new {@code StateDescriptor} with the given name and the given type information.
+	 *
+	 * <p>If this constructor fails (because it is not possible to describe the type via a class),
+	 * consider using the {@link #StateDescriptor(String, TypeInformation, Object)} constructor.
+	 *
+	 * @param name The name of the {@code StateDescriptor}.
+	 * @param type The class of the type of values in the state.
+	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
+	 * @param ttl The ttl of the value.
+	 */
+	protected StateDescriptor(String name, Class<T> type, T defaultValue, Time ttl) {
 		this.name = requireNonNull(name, "name must not be null");
 		requireNonNull(type, "type class must not be null");
 
@@ -139,13 +181,14 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 		} catch (Exception e) {
 			throw new RuntimeException(
 					"Could not create the type information for '" + type.getName() + "'. " +
-					"The most common reason is failure to infer the generic type information, due to Java's type erasure. " +
-					"In that case, please pass a 'TypeHint' instead of a class to describe the type. " +
-					"For example, to describe 'Tuple2<String, String>' as a generic type, use " +
-					"'new PravegaDeserializationSchema<>(new TypeHint<Tuple2<String, String>>(){}, serializer);'", e);
+							"The most common reason is failure to infer the generic type information, due to Java's type erasure. " +
+							"In that case, please pass a 'TypeHint' instead of a class to describe the type. " +
+							"For example, to describe 'Tuple2<String, String>' as a generic type, use " +
+							"'new PravegaDeserializationSchema<>(new TypeHint<Tuple2<String, String>>(){}, serializer);'", e);
 		}
 
 		this.defaultValue = defaultValue;
+		this.ttl = ttl;
 	}
 
 	// ------------------------------------------------------------------------
@@ -172,6 +215,13 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 		}
 	}
 
+	/**
+	 * Returns the TTL of the value.
+	 * */
+	public Time getTtl() {
+		return ttl;
+	}
+	
 	/**
 	 * Returns the {@link TypeSerializer} that can be used to serialize the value in the state.
 	 * Note that the serializer may initialized lazily and is only guaranteed to exist after
