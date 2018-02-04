@@ -19,7 +19,6 @@
 package org.apache.flink.api.common.state;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 
@@ -110,10 +109,10 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 	 *
 	 * @param name The (unique) name for the state.
 	 * @param typeClass The type of the values in the state.
-	 * @param ttl The ttl of the value.
+	 * @param ttlInSec The ttl of the value.
 	 */
-	public ValueStateDescriptor(String name, Class<T> typeClass, Time ttl) {
-		super(name, typeClass, null, ttl);
+	public ValueStateDescriptor(String name, Class<T> typeClass, int ttlInSec) {
+		super(name, typeClass, null, ttlInSec);
 	}
 
 	/**
@@ -131,10 +130,10 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 	 *
 	 * @param name The (unique) name for the state.
 	 * @param typeInfo The type of the values in the state.
-	 * @param ttl The ttl of the value.
+	 * @param ttlInSec The ttl of the value.
 	 */
-	public ValueStateDescriptor(String name, TypeInformation<T> typeInfo, Time ttl) {
-		super(name, typeInfo, null, ttl);
+	public ValueStateDescriptor(String name, TypeInformation<T> typeInfo, int ttlInSec) {
+		super(name, typeInfo, null, ttlInSec);
 	}
 
 	/**
@@ -152,10 +151,10 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 	 *
 	 * @param name The (unique) name for the state.
 	 * @param typeSerializer The type serializer of the values in the state.
-	 * @param ttl The ttl of the value.
+	 * @param ttlInSec The ttl of the value.
 	 */
-	public ValueStateDescriptor(String name, TypeSerializer<T> typeSerializer, Time ttl) {
-		super(name, typeSerializer, null, ttl);
+	public ValueStateDescriptor(String name, TypeSerializer<T> typeSerializer, int ttlInSec) {
+		super(name, typeSerializer, null, ttlInSec);
 	}
 
 	// ------------------------------------------------------------------------
@@ -192,6 +191,7 @@ public class ValueStateDescriptor<T> extends StateDescriptor<ValueState<T>, T> {
 		return "ValueStateDescriptor{" +
 				"name=" + name +
 				", defaultValue=" + defaultValue +
+				", ttl=" + ttlInSec +
 				", serializer=" + serializer +
 				'}';
 	}

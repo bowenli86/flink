@@ -20,7 +20,6 @@ package org.apache.flink.api.common.state;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
@@ -86,8 +85,8 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	/** The default value returned by the state when no other value is bound to a key. */
 	protected transient T defaultValue;
 
-	/** Time-to-live for the key. */
-	protected Time ttl;
+	/** Time-to-live in seconds for the key. */
+	protected int ttlInSec;
 
 	/** The type information describing the value type. Only used to lazily create the serializer
 	 * and dropped during serialization. */
@@ -103,7 +102,7 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue) {
-		this(name, serializer, defaultValue, null);
+		this(name, serializer, defaultValue, 0);
 	}
 
 	/**
@@ -112,13 +111,13 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param serializer The type serializer for the values in the state.
 	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
-	 * @param ttl The ttl of the value.
+	 * @param ttlInSec The ttl of the value.
 	 */
-	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue, Time ttl) {
+	protected StateDescriptor(String name, TypeSerializer<T> serializer, T defaultValue, int ttlInSec) {
 		this.name = requireNonNull(name, "name must not be null");
 		this.serializer = requireNonNull(serializer, "serializer must not be null");
 		this.defaultValue = defaultValue;
-		this.ttl = ttl;
+		this.ttlInSec = ttlInSec;
 	}
 
 	/**
@@ -129,7 +128,7 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue) {
-		this(name, typeInfo, defaultValue, null);
+		this(name, typeInfo, defaultValue, 0);
 	}
 
 	/**
@@ -138,13 +137,13 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param typeInfo The type information for the values in the state.
 	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
-	 * @param ttl The ttl of the value.
+	 * @param ttlInSec The ttl of the value.
 	 */
-	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue, Time ttl) {
+	protected StateDescriptor(String name, TypeInformation<T> typeInfo, T defaultValue, int ttlInSec) {
 		this.name = requireNonNull(name, "name must not be null");
 		this.typeInfo = requireNonNull(typeInfo, "type information must not be null");
 		this.defaultValue = defaultValue;
-		this.ttl = ttl;
+		this.ttlInSec = ttlInSec;
 	}
 
 	/**
@@ -158,7 +157,7 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
 	 */
 	protected StateDescriptor(String name, Class<T> type, T defaultValue) {
-		this(name, type, defaultValue, null);
+		this(name, type, defaultValue, 0);
 	}
 
 	/**
@@ -170,9 +169,9 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	 * @param name The name of the {@code StateDescriptor}.
 	 * @param type The class of the type of values in the state.
 	 * @param defaultValue The default value that will be set when requesting state without setting a value before.
-	 * @param ttl The ttl of the value.
+	 * @param ttlInSec The ttl of the value.
 	 */
-	protected StateDescriptor(String name, Class<T> type, T defaultValue, Time ttl) {
+	protected StateDescriptor(String name, Class<T> type, T defaultValue, int ttlInSec) {
 		this.name = requireNonNull(name, "name must not be null");
 		requireNonNull(type, "type class must not be null");
 
@@ -188,7 +187,7 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 		}
 
 		this.defaultValue = defaultValue;
-		this.ttl = ttl;
+		this.ttlInSec = ttlInSec;
 	}
 
 	// ------------------------------------------------------------------------
@@ -216,12 +215,12 @@ public abstract class StateDescriptor<S extends State, T> implements Serializabl
 	}
 
 	/**
-	 * Returns the TTL of the value.
+	 * Returns the TTL in seconds of the value.
 	 * */
-	public Time getTtl() {
-		return ttl;
+	public int getTtlInSec() {
+		return ttlInSec;
 	}
-	
+
 	/**
 	 * Returns the {@link TypeSerializer} that can be used to serialize the value in the state.
 	 * Note that the serializer may initialized lazily and is only guaranteed to exist after
