@@ -149,6 +149,11 @@ public class NestedMapsStateTable<K, N, S> extends StateTable<K, N, S> {
 	}
 
 	@Override
+	public void put(N namespace, S state, long expirationTime) {
+		putAndGetOld(keyContext.getCurrentKey(), keyContext.getCurrentKeyGroupIndex(), namespace, state, expirationTime);
+	}
+
+	@Override
 	public S putAndGetOld(N namespace, S state) {
 		return putAndGetOld(keyContext.getCurrentKey(), keyContext.getCurrentKeyGroupIndex(), namespace, state);
 	}
@@ -219,6 +224,10 @@ public class NestedMapsStateTable<K, N, S> extends StateTable<K, N, S> {
 	}
 
 	private S putAndGetOld(K key, int keyGroupIndex, N namespace, S value) {
+		return putAndGetOld(key, keyGroupIndex, namespace, value, 0);
+	}
+
+	private S putAndGetOld(K key, int keyGroupIndex, N namespace, S value, long expirationTime) {
 
 		checkKeyNamespacePreconditions(key, namespace);
 

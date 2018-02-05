@@ -314,7 +314,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 
 	@Override
 	public void put(N namespace, S state, long expirationTime) {
-		put(keyContext.getCurrentKey(), namespace, state, expirationTime);
+		putWithTTL(keyContext.getCurrentKey(), namespace, state, expirationTime);
 	}
 
 	@Override
@@ -390,7 +390,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @param value     the value. Can be null.
 	 * @param expirationTime the epoch TTL expiration time of the state.
 	 */
-	void put(K key, N namespace, S value, long expirationTime) {
+	void putWithTTL(K key, N namespace, S value, long expirationTime) {
 		final StateEntry<K, N, S> e = putEntry(key, namespace);
 
 		e.state = value;
