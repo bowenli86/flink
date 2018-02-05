@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -124,12 +123,12 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * is set to half the minimum, so that the first resize will create a
 	 * minimum-sized table.
 	 */
-	private static final StateTableEntry<?, ?, ?>[] EMPTY_TABLE = new StateTableEntry[MINIMUM_CAPACITY >>> 1];
+	private static final StateEntry<?, ?, ?>[] EMPTY_TABLE = new StateTableEntry[MINIMUM_CAPACITY >>> 1];
 
 	/**
 	 * Empty entry that we use to bootstrap our {@link CopyOnWriteStateTable.StateEntryIterator}.
 	 */
-	private static final StateTableEntry<?, ?, ?> ITERATOR_BOOTSTRAP_ENTRY = new StateTableEntry<>();
+	private static final StateEntry<?, ?, ?> ITERATOR_BOOTSTRAP_ENTRY = new StateTableEntry<>();
 
 	/**
 	 * Maintains an ordered set of version ids that are still in use by unreleased snapshots.
@@ -140,14 +139,14 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * This is the primary entry array (hash directory) of the state table. If no incremental rehash is ongoing, this
 	 * is the only used table.
 	 **/
-	private StateTableEntry<K, N, S>[] primaryTable;
+	private StateEntry<K, N, S>[] primaryTable;
 
 	/**
 	 * We maintain a secondary entry array while performing an incremental rehash. The purpose is to slowly migrate
 	 * entries from the primary table to this resized table array. When all entries are migrated, this becomes the new
 	 * primary table.
 	 */
-	private StateTableEntry<K, N, S>[] incrementalRehashTable;
+	private StateEntry<K, N, S>[] incrementalRehashTable;
 
 	/**
 	 * The current number of mappings in the primary table.
@@ -264,10 +263,10 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 
 		final int hash = computeHashForOperationAndDoIncrementalRehash(key, namespace);
 		final int requiredVersion = highestRequiredSnapshotVersion;
-		final StateTableEntry<K, N, S>[] tab = selectActiveTable(hash);
+		final StateEntry<K, N, S>[] tab = selectActiveTable(hash);
 		int index = hash & (tab.length - 1);
 
-		for (StateTableEntry<K, N, S> e = tab[index]; e != null; e = e.next) {
+		for (StateEntry<K, N, S> e = tab[index]; e != null; e = e.next) {
 			final K eKey = e.key;
 			final N eNamespace = e.namespace;
 			if ((e.hash == hash && key.equals(eKey) && namespace.equals(eNamespace))) {
@@ -349,10 +348,10 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	boolean containsKey(K key, N namespace) {
 
 		final int hash = computeHashForOperationAndDoIncrementalRehash(key, namespace);
-		final StateTableEntry<K, N, S>[] tab = selectActiveTable(hash);
+		final StateEntry<K, N, S>[] tab = selectActiveTable(hash);
 		int index = hash & (tab.length - 1);
 
-		for (StateTableEntry<K, N, S> e = tab[index]; e != null; e = e.next) {
+		for (StateEntry<K, N, S> e = tab[index]; e != null; e = e.next) {
 			final K eKey = e.key;
 			final N eNamespace = e.namespace;
 
@@ -373,7 +372,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @param value     the value. Can be null.
 	 */
 	void put(K key, N namespace, S value) {
-		final StateTableEntry<K, N, S> e = putEntry(key, namespace);
+		final StateEntry<K, N, S> e = putEntry(key, namespace);
 
 		e.state = value;
 		e.stateVersion = stateTableVersion;
@@ -391,7 +390,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 */
 	S putAndGetOld(K key, N namespace, S value) {
 
-		final StateTableEntry<K, N, S> e = putEntry(key, namespace);
+		final StateEntry<K, N, S> e = putEntry(key, namespace);
 
 		// copy-on-write check for state
 		S oldState = (e.stateVersion < highestRequiredSnapshotVersion) ?
@@ -427,7 +426,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 */
 	S removeAndGetOld(K key, N namespace) {
 
-		final StateTableEntry<K, N, S> e = removeEntry(key, namespace);
+		final StateEntry<K, N, S> e = removeEntry(key, namespace);
 
 		return e != null ?
 				// copy-on-write check for state
@@ -452,7 +451,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 			T value,
 			StateTransformationFunction<S, T> transformation) throws Exception {
 
-		final StateTableEntry<K, N, S> entry = putEntry(key, namespace);
+		final StateEntry<K, N, S> entry = putEntry(key, namespace);
 
 		// copy-on-write check for state
 		entry.state = transformation.apply(
@@ -466,13 +465,13 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	/**
 	 * Helper method that is the basis for operations that add mappings.
 	 */
-	private StateTableEntry<K, N, S> putEntry(K key, N namespace) {
+	private StateEntry<K, N, S> putEntry(K key, N namespace) {
 
 		final int hash = computeHashForOperationAndDoIncrementalRehash(key, namespace);
-		final StateTableEntry<K, N, S>[] tab = selectActiveTable(hash);
+		final StateEntry<K, N, S>[] tab = selectActiveTable(hash);
 		int index = hash & (tab.length - 1);
 
-		for (StateTableEntry<K, N, S> e = tab[index]; e != null; e = e.next) {
+		for (StateEntry<K, N, S> e = tab[index]; e != null; e = e.next) {
 			if (e.hash == hash && key.equals(e.key) && namespace.equals(e.namespace)) {
 
 				// copy-on-write check for entry
@@ -495,13 +494,13 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	/**
 	 * Helper method that is the basis for operations that remove mappings.
 	 */
-	private StateTableEntry<K, N, S> removeEntry(K key, N namespace) {
+	private StateEntry<K, N, S> removeEntry(K key, N namespace) {
 
 		final int hash = computeHashForOperationAndDoIncrementalRehash(key, namespace);
-		final StateTableEntry<K, N, S>[] tab = selectActiveTable(hash);
+		final StateEntry<K, N, S>[] tab = selectActiveTable(hash);
 		int index = hash & (tab.length - 1);
 
-		for (StateTableEntry<K, N, S> e = tab[index], prev = null; e != null; prev = e, e = e.next) {
+		for (StateEntry<K, N, S> e = tab[index], prev = null; e != null; prev = e, e = e.next) {
 			if (e.hash == hash && key.equals(e.key) && namespace.equals(e.namespace)) {
 				if (prev == null) {
 					tab[index] = e.next;
@@ -579,7 +578,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 */
 	@VisibleForTesting
 	@SuppressWarnings("unchecked")
-	StateTableEntry<K, N, S>[] snapshotTableArrays() {
+	StateEntry<K, N, S>[] snapshotTableArrays() {
 
 		// we guard against concurrent modifications of highestRequiredSnapshotVersion between snapshot and release.
 		// Only stale reads of from the result of #releaseSnapshot calls are ok. This is why we must call this method
@@ -596,7 +595,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 			snapshotVersions.add(highestRequiredSnapshotVersion);
 		}
 
-		StateTableEntry<K, N, S>[] table = primaryTable;
+		StateEntry<K, N, S>[] table = primaryTable;
 		if (isRehashing()) {
 			// consider both tables for the snapshot, the rehash index tells us which part of the two tables we need
 			final int localRehashIndex = rehashIndex;
@@ -640,8 +639,8 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	/**
 	 * Creates and inserts a new {@link StateTableEntry}.
 	 */
-	private StateTableEntry<K, N, S> addNewStateTableEntry(
-			StateTableEntry<K, N, S>[] table,
+	private StateEntry<K, N, S> addNewStateTableEntry(
+			StateEntry<K, N, S>[] table,
 			K key,
 			N namespace,
 			int hash) {
@@ -654,7 +653,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		}
 
 		int index = hash & (table.length - 1);
-		StateTableEntry<K, N, S> newEntry = new StateTableEntry<>(
+		StateEntry<K, N, S> newEntry = new StateTableEntry<>(
 				key,
 				namespace,
 				null,
@@ -678,7 +677,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @param hashCode the hash code which we use to decide about the table that is responsible.
 	 * @return the index of the sub-table that is responsible for the entry with the given hash code.
 	 */
-	private StateTableEntry<K, N, S>[] selectActiveTable(int hashCode) {
+	private StateEntry<K, N, S>[] selectActiveTable(int hashCode) {
 		return (hashCode & (primaryTable.length - 1)) >= rehashIndex ? primaryTable : incrementalRehashTable;
 	}
 
@@ -693,7 +692,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		// There can only be one rehash in flight. From the amount of incremental rehash steps we take, this should always hold.
 		Preconditions.checkState(!isRehashing(), "There is already a rehash in progress.");
 
-		StateTableEntry<K, N, S>[] oldTable = primaryTable;
+		StateEntry<K, N, S>[] oldTable = primaryTable;
 
 		int oldCapacity = oldTable.length;
 
@@ -734,8 +733,8 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	@SuppressWarnings("unchecked")
 	private void incrementalRehash() {
 
-		StateTableEntry<K, N, S>[] oldTable = primaryTable;
-		StateTableEntry<K, N, S>[] newTable = incrementalRehashTable;
+		StateEntry<K, N, S>[] oldTable = primaryTable;
+		StateEntry<K, N, S>[] newTable = incrementalRehashTable;
 
 		int oldCapacity = oldTable.length;
 		int newMask = newTable.length - 1;
@@ -746,14 +745,14 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		// we migrate a certain minimum amount of entries from the old to the new table
 		while (transferred < MIN_TRANSFERRED_PER_INCREMENTAL_REHASH) {
 
-			StateTableEntry<K, N, S> e = oldTable[rhIdx];
+			StateEntry<K, N, S> e = oldTable[rhIdx];
 
 			while (e != null) {
 				// copy-on-write check for entry
 				if (e.entryVersion < requiredVersion) {
 					e = new StateTableEntry<>(e, stateTableVersion);
 				}
-				StateTableEntry<K, N, S> n = e.next;
+				StateEntry<K, N, S> n = e.next;
 				int pos = e.hash & newMask;
 				e.next = newTable[pos];
 				newTable[pos] = e;
@@ -783,18 +782,18 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * Perform copy-on-write for entry chains. We iterate the (hopefully and probably) still cached chain, replace
 	 * all links up to the 'untilEntry', which we actually wanted to modify.
 	 */
-	private StateTableEntry<K, N, S> handleChainedEntryCopyOnWrite(
-			StateTableEntry<K, N, S>[] tab,
+	private StateEntry<K, N, S> handleChainedEntryCopyOnWrite(
+			StateEntry<K, N, S>[] tab,
 			int tableIdx,
-			StateTableEntry<K, N, S> untilEntry) {
+			StateEntry<K, N, S> untilEntry) {
 
 		final int required = highestRequiredSnapshotVersion;
 
-		StateTableEntry<K, N, S> current = tab[tableIdx];
-		StateTableEntry<K, N, S> copy;
+		StateEntry<K, N, S> current = tab[tableIdx];
+		StateEntry<K, N, S> copy;
 
 		if (current.entryVersion < required) {
-			copy = new StateTableEntry<>(current, stateTableVersion);
+			copy = new StateTableEntry<K, N, S>(current, stateTableVersion);
 			tab[tableIdx] = copy;
 		} else {
 			// nothing to do, just advance copy to current
@@ -877,50 +876,13 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @param <N> type of namespace.
 	 * @param <S> type of state.
 	 */
-	static class StateTableEntry<K, N, S> implements StateEntry<K, N, S> {
-
-		/**
-		 * The key. Assumed to be immutable and not null.
-		 */
-		final K key;
-
-		/**
-		 * The namespace. Assumed to be immutable and not null.
-		 */
-		final N namespace;
-
-		/**
-		 * The state. This is not final to allow exchanging the object for copy-on-write. Can be null.
-		 */
-		S state;
-
-		/**
-		 * Link to another {@link StateTableEntry}. This is used to resolve collisions in the
-		 * {@link CopyOnWriteStateTable} through chaining.
-		 */
-		StateTableEntry<K, N, S> next;
-
-		/**
-		 * The version of this {@link StateTableEntry}. This is meta data for copy-on-write of the table structure.
-		 */
-		int entryVersion;
-
-		/**
-		 * The version of the state object in this entry. This is meta data for copy-on-write of the state object itself.
-		 */
-		int stateVersion;
-
-		/**
-		 * The computed secondary hash for the composite of key and namespace.
-		 */
-		final int hash;
-
+	static class StateTableEntry<K, N, S> extends StateEntry<K, N, S> {
 		StateTableEntry() {
-			this(null, null, null, 0, null, 0, 0);
+			super(null, null, null, 0, null, 0, 0);
 		}
 
-		StateTableEntry(StateTableEntry<K, N, S> other, int entryVersion) {
-			this(other.key, other.namespace, other.state, other.hash, other.next, entryVersion, other.stateVersion);
+		StateTableEntry(StateEntry<K, N, S> other, int entryVersion) {
+			super(other.key, other.namespace, other.state, other.hash, other.next, entryVersion, other.stateVersion);
 		}
 
 		StateTableEntry(
@@ -928,16 +890,10 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 				N namespace,
 				S state,
 				int hash,
-				StateTableEntry<K, N, S> next,
+				StateEntry<K, N, S> next,
 				int entryVersion,
 				int stateVersion) {
-			this.key = key;
-			this.namespace = namespace;
-			this.hash = hash;
-			this.next = next;
-			this.entryVersion = entryVersion;
-			this.state = state;
-			this.stateVersion = stateVersion;
+			super(key, namespace, state, hash, next, entryVersion, stateVersion);
 		}
 
 		public final void setState(S value, int mapVersion) {
@@ -947,42 +903,56 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 				this.stateVersion = mapVersion;
 			}
 		}
+	}
 
-		@Override
-		public K getKey() {
-			return key;
+	/**
+	 * One entry in the {@link CopyOnWriteStateTable}. This is a triplet of key, namespace, and state. Thereby, key and
+	 * namespace together serve as a composite key for the state. This class also contains some management meta data for
+	 * copy-on-write, a pointer to link other {@link StateTableEntryWithTTL}s to a list, and cached hash code.
+	 *
+	 * @param <K> type of key.
+	 * @param <N> type of namespace.
+	 * @param <S> type of state.
+	 */
+	static class StateTableEntryWithTTL<K, N, S> extends StateTableEntry<K, N, S> {
+		/**
+		 * The TTL expiration time of state o
+		 */
+		int expirationTime;
+
+		StateTableEntryWithTTL() {
+			this(null, null, null, 0, null, 0, 0, 0);
+		}
+
+		StateTableEntryWithTTL(StateEntry<K, N, S> other, int entryVersion) {
+			this(other.key, other.namespace, other.state, other.hash, other.next, entryVersion, other.stateVersion, other.getExpirationTime());
+		}
+
+		StateTableEntryWithTTL(
+				K key,
+				N namespace,
+				S state,
+				int hash,
+				StateEntry<K, N, S> next,
+				int entryVersion,
+				int stateVersion,
+				int expirationTime) {
+			super(key, namespace, state, hash, next, entryVersion, stateVersion);
+			this.expirationTime = expirationTime;
 		}
 
 		@Override
-		public N getNamespace() {
-			return namespace;
+		public int getExpirationTime() {
+			return expirationTime;
 		}
 
-		@Override
-		public S getState() {
-			return state;
-		}
-
-		@Override
-		public final boolean equals(Object o) {
-			if (!(o instanceof CopyOnWriteStateTable.StateTableEntry)) {
-				return false;
+		public final void setState(S value, int mapVersion, int expirationTime) {
+			// naturally, we can update the state version every time we replace the old state with a different object
+			if (value != state) {
+				this.state = value;
+				this.stateVersion = mapVersion;
+				this.expirationTime = expirationTime;
 			}
-
-			StateEntry<?, ?, ?> e = (StateEntry<?, ?, ?>) o;
-			return e.getKey().equals(key)
-					&& e.getNamespace().equals(namespace)
-					&& Objects.equals(e.getState(), state);
-		}
-
-		@Override
-		public final int hashCode() {
-			return (key.hashCode() ^ namespace.hashCode()) ^ Objects.hashCode(state);
-		}
-
-		@Override
-		public final String toString() {
-			return "(" + key + "|" + namespace + ")=" + state;
 		}
 	}
 
@@ -1006,9 +976,9 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * Iterator over the entries in a {@link CopyOnWriteStateTable}.
 	 */
 	class StateEntryIterator implements Iterator<StateEntry<K, N, S>> {
-		private StateTableEntry<K, N, S>[] activeTable;
+		private StateEntry<K, N, S>[] activeTable;
 		private int nextTablePosition;
-		private StateTableEntry<K, N, S> nextEntry;
+		private StateEntry<K, N, S> nextEntry;
 		private int expectedModCount = modCount;
 
 		StateEntryIterator() {
@@ -1019,15 +989,15 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 			advanceIterator();
 		}
 
-		private StateTableEntry<K, N, S> advanceIterator() {
+		private StateEntry<K, N, S> advanceIterator() {
 
-			StateTableEntry<K, N, S> entryToReturn = nextEntry;
-			StateTableEntry<K, N, S> next = entryToReturn.next;
+			StateEntry<K, N, S> entryToReturn = nextEntry;
+			StateEntry<K, N, S> next = entryToReturn.next;
 
 			// consider both sub-tables tables to cover the case of rehash
 			while (next == null) {
 
-				StateTableEntry<K, N, S>[] tab = activeTable;
+				StateEntry<K, N, S>[] tab = activeTable;
 
 				while (nextTablePosition < tab.length) {
 					next = tab[nextTablePosition++];
@@ -1056,7 +1026,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		}
 
 		@Override
-		public StateTableEntry<K, N, S> next() {
+		public StateEntry<K, N, S> next() {
 			if (modCount != expectedModCount) {
 				throw new ConcurrentModificationException();
 			}

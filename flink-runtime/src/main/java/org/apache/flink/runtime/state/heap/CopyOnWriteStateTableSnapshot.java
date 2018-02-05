@@ -62,7 +62,7 @@ public class CopyOnWriteStateTableSnapshot<K, N, S>
 	 * copies of the current entries in the {@link CopyOnWriteStateTable} that created this snapshot. This depends for each entry
 	 * on whether or not it was subject to copy-on-write operations by the {@link CopyOnWriteStateTable}.
 	 */
-	private final CopyOnWriteStateTable.StateTableEntry<K, N, S>[] snapshotData;
+	private final StateEntry<K, N, S>[] snapshotData;
 
 	/**
 	 * Offsets for the individual key-groups. This is lazily created when the snapshot is grouped by key-group during
@@ -136,11 +136,11 @@ public class CopyOnWriteStateTableSnapshot<K, N, S>
 		final int baseKgIdx = keyGroupRange.getStartKeyGroup();
 		final int[] histogram = new int[keyGroupRange.getNumberOfKeyGroups() + 1];
 
-		CopyOnWriteStateTable.StateTableEntry<K, N, S>[] unfold = new CopyOnWriteStateTable.StateTableEntry[stateTableSize];
+		StateEntry<K, N, S>[] unfold = new CopyOnWriteStateTable.StateTableEntry[stateTableSize];
 
 		// 1) In this step we i) 'unfold' the linked list of entries to a flat array and ii) build a histogram for key-groups
 		int unfoldIndex = 0;
-		for (CopyOnWriteStateTable.StateTableEntry<K, N, S> entry : snapshotData) {
+		for (StateEntry<K, N, S> entry : snapshotData) {
 			while (null != entry) {
 				int effectiveKgIdx =
 						KeyGroupRangeAssignment.computeKeyGroupForKeyHash(entry.key.hashCode(), totalKeyGroups) - baseKgIdx + 1;
@@ -156,7 +156,7 @@ public class CopyOnWriteStateTableSnapshot<K, N, S>
 		}
 
 		// 3) We repartition the entries by key-group, using the histogram values as write indexes
-		for (CopyOnWriteStateTable.StateTableEntry<K, N, S> t : unfold) {
+		for (StateEntry<K, N, S> t : unfold) {
 			int effectiveKgIdx =
 					KeyGroupRangeAssignment.computeKeyGroupForKeyHash(t.key.hashCode(), totalKeyGroups) - baseKgIdx;
 			snapshotData[histogram[effectiveKgIdx]++] = t;
@@ -178,7 +178,7 @@ public class CopyOnWriteStateTableSnapshot<K, N, S>
 			partitionEntriesByKeyGroup();
 		}
 
-		final CopyOnWriteStateTable.StateTableEntry<K, N, S>[] groupedOut = snapshotData;
+		final StateEntry<K, N, S>[] groupedOut = snapshotData;
 		KeyGroupRange keyGroupRange = owningStateTable.keyContext.getKeyGroupRange();
 		int keyGroupOffsetIdx = keyGroupId - keyGroupRange.getStartKeyGroup() - 1;
 		int startOffset = keyGroupOffsetIdx < 0 ? 0 : keyGroupOffsets[keyGroupOffsetIdx];
@@ -189,7 +189,7 @@ public class CopyOnWriteStateTableSnapshot<K, N, S>
 
 		// write mappings
 		for (int i = startOffset; i < endOffset; ++i) {
-			CopyOnWriteStateTable.StateTableEntry<K, N, S> toWrite = groupedOut[i];
+			StateEntry<K, N, S> toWrite = groupedOut[i];
 			groupedOut[i] = null; // free asap for GC
 			localNamespaceSerializer.serialize(toWrite.namespace, dov);
 			localKeySerializer.serialize(toWrite.key, dov);

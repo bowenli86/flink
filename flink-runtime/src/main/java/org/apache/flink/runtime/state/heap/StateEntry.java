@@ -18,6 +18,8 @@
 
 package org.apache.flink.runtime.state.heap;
 
+import java.util.Objects;
+
 /**
  * Interface of entries in a state table. Entries are triple of key, namespace, and state.
  *
@@ -25,20 +27,115 @@ package org.apache.flink.runtime.state.heap;
  * @param <N> type of namespace.
  * @param <S> type of state.
  */
-public interface StateEntry<K, N, S> {
+public abstract class StateEntry<K, N, S> {
+	/**
+	 * The key. Assumed to be immutable and not null.
+	 */
+	final K key;
+
+	/**
+	 * The namespace. Assumed to be immutable and not null.
+	 */
+	final N namespace;
+
+	/**
+	 * The state. This is not final to allow exchanging the object for copy-on-write. Can be null.
+	 */
+	S state;
+
+	/**
+	 * Link to another {@link StateEntry}. This is used to resolve collisions in the
+	 * {@link CopyOnWriteStateTable} through chaining.
+	 */
+	StateEntry<K, N, S> next;
+
+	/**
+	 * The version of this {@link CopyOnWriteStateTable.StateTableEntry}. This is meta data for copy-on-write of the table structure.
+	 */
+	int entryVersion;
+
+	/**
+	 * The version of the state object in this entry. This is meta data for copy-on-write of the state object itself.
+	 */
+	int stateVersion;
+
+	/**
+	 * The computed secondary hash for the composite of key and namespace.
+	 */
+	final int hash;
+
+	StateEntry() {
+		this(null, null, null, 0, null, 0, 0);
+	}
+
+	StateEntry(StateEntry<K, N, S> other, int entryVersion) {
+		this(other.key, other.namespace, other.state, other.hash, other.next, entryVersion, other.stateVersion);
+	}
+
+	StateEntry(
+			K key,
+			N namespace,
+			S state,
+			int hash,
+			StateEntry<K, N, S> next,
+			int entryVersion,
+			int stateVersion) {
+		this.key = key;
+		this.namespace = namespace;
+		this.hash = hash;
+		this.next = next;
+		this.entryVersion = entryVersion;
+		this.state = state;
+		this.stateVersion = stateVersion;
+	}
 
 	/**
 	 * Returns the key of this entry.
 	 */
-	K getKey();
+	public K getKey() {
+		return key;
+	}
 
 	/**
 	 * Returns the namespace of this entry.
 	 */
-	N getNamespace();
+	public N getNamespace() {
+		return namespace;
+	}
 
 	/**
 	 * Returns the state of this entry.
 	 */
-	S getState();
+	public S getState() {
+		return state;
+	}
+
+	/**
+	 * Returns the expiration time of state
+	 */
+	public int getExpirationTime() {
+		return 0;
+	}
+
+	@Override
+	public final boolean equals(Object o) {
+		if (!(o instanceof StateEntry)) {
+			return false;
+		}
+
+		StateEntry<?, ?, ?> e = (StateEntry<?, ?, ?>) o;
+		return e.getKey().equals(key)
+				&& e.getNamespace().equals(namespace)
+				&& Objects.equals(e.getState(), state);
+	}
+
+	@Override
+	public final int hashCode() {
+		return (key.hashCode() ^ namespace.hashCode()) ^ Objects.hashCode(state);
+	}
+
+	@Override
+	public final String toString() {
+		return "(" + key + "|" + namespace + ")=" + state;
+	}
 }
