@@ -313,6 +313,11 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	}
 
 	@Override
+	public void put(N namespace, S state, long expirationTime) {
+		put(keyContext.getCurrentKey(), namespace, state, expirationTime);
+	}
+
+	@Override
 	public S putAndGetOld(N namespace, S state) {
 		return putAndGetOld(keyContext.getCurrentKey(), namespace, state);
 	}
@@ -376,6 +381,23 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	}
 
 	/**
+	 * Maps the specified key/namespace composite key to the specified value. This method should be preferred
+	 * over {@link #putAndGetOld(Object, Object, Object)} (Object, Object)} when the caller is not interested
+	 * in the old value, because this can potentially reduce copy-on-write activity.
+	 *
+	 * @param key       the key. Not null.
+	 * @param namespace the namespace. Not null.
+	 * @param value     the value. Can be null.
+	 * @param expirationTime the epoch TTL expiration time of the state.
+	 */
+	void put(K key, N namespace, S value, long expirationTime) {
+		final StateEntry<K, N, S> e = putEntry(key, namespace);
+
+		e.state = value;
+		e.stateVersion = stateTableVersion;
+	}
+
+	/**
 	 * Maps the specified key/namespace composite key to the specified value. Returns the previous state that was
 	 * registered under the composite key.
 	 *
@@ -386,7 +408,6 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * {@code null} if there was no such mapping.
 	 */
 	S putAndGetOld(K key, N namespace, S value) {
-
 		final StateEntry<K, N, S> e = putEntry(key, namespace);
 
 		// copy-on-write check for state
@@ -439,7 +460,6 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @see #transform(Object, Object, StateTransformationFunction).
 	 */
 	<T> void transform(K key, N namespace, T value, StateTransformationFunction<S, T> transformation) throws Exception {
-
 		final StateEntry<K, N, S> entry = putEntry(key, namespace);
 
 		// copy-on-write check for state
@@ -861,11 +881,17 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 */
 	static class StateTableEntry<K, N, S> extends StateEntry<K, N, S> {
 		StateTableEntry() {
-			super(null, null, null, 0, null, 0, 0);
+			this(null, null, null, 0, null, 0, 0);
 		}
 
 		StateTableEntry(StateEntry<K, N, S> other, int entryVersion) {
-			super(other.key, other.namespace, other.state, other.hash, other.next, entryVersion, other.stateVersion);
+			this(other.key,
+					other.namespace,
+					other.state,
+					other.hash,
+					other.next,
+					entryVersion,
+					other.stateVersion);
 		}
 
 		StateTableEntry(

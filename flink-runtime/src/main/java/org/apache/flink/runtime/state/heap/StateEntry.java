@@ -50,7 +50,7 @@ public abstract class StateEntry<K, N, S> {
 	StateEntry<K, N, S> next;
 
 	/**
-	 * The version of this {@link CopyOnWriteStateTable.StateTableEntry}. This is meta data for copy-on-write of the table structure.
+	 * The version of this {@link StateEntry}. This is meta data for copy-on-write of the table structure.
 	 */
 	int entryVersion;
 

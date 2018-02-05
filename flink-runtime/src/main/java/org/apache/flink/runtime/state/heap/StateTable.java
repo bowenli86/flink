@@ -104,6 +104,16 @@ public abstract class StateTable<K, N, S> {
 	public abstract void put(N namespace, S state);
 
 	/**
+	 * Maps the composite of active key and given namespace to the specified state. This method should be preferred
+	 * over {@link #putAndGetOld(N, S)} (Namespace, State)} when the caller is not interested in the old state.
+	 *
+	 * @param namespace the namespace. Not null.
+	 * @param state     the state. Can be null.
+	 * @param expirationTime the epoch TTL expiration time of the state.
+	 */
+	public abstract void put(N namespace, S state, long expirationTime);
+
+	/**
 	 * Maps the composite of active key and given namespace to the specified state. Returns the previous state that
 	 * was registered under the composite key.
 	 *
