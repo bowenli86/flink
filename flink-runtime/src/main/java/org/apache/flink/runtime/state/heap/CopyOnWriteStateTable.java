@@ -168,6 +168,11 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	private int stateTableVersion;
 
 	/**
+	 * The TTL of state objects.
+	 */
+	private int ttlInSec;
+
+	/**
 	 * The highest version of this map that is still required by any unreleased snapshot.
 	 */
 	private int highestRequiredSnapshotVersion;
@@ -196,7 +201,17 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @param metaInfo   the meta information, including the type serializer for state copy-on-write.
 	 */
 	CopyOnWriteStateTable(InternalKeyContext<K> keyContext, RegisteredKeyedBackendStateMetaInfo<N, S> metaInfo) {
-		this(keyContext, metaInfo, 1024);
+		this(keyContext, metaInfo, 1024, 0);
+	}
+
+	/**
+	 * Constructs a new {@code StateTable} with ttl of states and default capacity of 1024.
+	 *
+	 * @param keyContext the key context.
+	 * @param metaInfo   the meta information, including the type serializer for state copy-on-write.
+	 */
+	CopyOnWriteStateTable(InternalKeyContext<K> keyContext, RegisteredKeyedBackendStateMetaInfo<N, S> metaInfo, int ttlInSec) {
+		this(keyContext, metaInfo, 1024, ttlInSec);
 	}
 
 	/**
@@ -208,7 +223,11 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 	 * @throws IllegalArgumentException when the capacity is less than zero.
 	 */
 	@SuppressWarnings("unchecked")
-	private CopyOnWriteStateTable(InternalKeyContext<K> keyContext, RegisteredKeyedBackendStateMetaInfo<N, S> metaInfo, int capacity) {
+	private CopyOnWriteStateTable(
+			InternalKeyContext<K> keyContext,
+			RegisteredKeyedBackendStateMetaInfo<N, S> metaInfo,
+			int capacity,
+			int ttlInSec) {
 		super(keyContext, metaInfo);
 
 		// initialized tables to EMPTY_TABLE.
@@ -223,6 +242,7 @@ public class CopyOnWriteStateTable<K, N, S> extends StateTable<K, N, S> implemen
 		this.stateTableVersion = 0;
 		this.highestRequiredSnapshotVersion = 0;
 		this.snapshotVersions = new TreeSet<>();
+		this.ttlInSec = ttlInSec;
 
 		if (capacity < 0) {
 			throw new IllegalArgumentException("Capacity: " + capacity);
