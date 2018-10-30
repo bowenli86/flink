@@ -102,6 +102,12 @@ public class FileInputFormatTest {
 		format.setFilePaths(new String[0]);
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testSetConsumingTimePositionNegativeLong() {
+		final MultiDummyFileInputFormat format = new MultiDummyFileInputFormat();
+		format.setConsumingTimePosition(-1L);
+	}
+
 	@Test
 	public void testSetPath() {
 		final DummyFileInputFormat format = new DummyFileInputFormat();
@@ -149,6 +155,16 @@ public class FileInputFormatTest {
 		Assert.assertEquals(2, filePaths.length);
 		Assert.assertEquals(myPath, filePaths[0].toUri().toString());
 		Assert.assertEquals(myPath2, filePaths[1].toUri().toString());
+	}
+
+	@Test
+	public void testSetConsumingTimePosition() {
+		final MultiDummyFileInputFormat format = new MultiDummyFileInputFormat();
+
+		Assert.assertEquals(0L, format.getConsumingTimePosition());
+
+		format.setConsumingTimePosition(1L);
+		Assert.assertEquals(1L, format.getConsumingTimePosition());
 	}
 
 	@Test(expected = UnsupportedOperationException.class)
@@ -218,12 +234,19 @@ public class FileInputFormatTest {
 	}
 
 	@Test
-	public void testCreateInputSplitMultiFiles() throws IOException {
+	public void testCreateInputSplitMultiFiles() throws IOException, InterruptedException {
+		String tempFile0 = TestFileUtils.createTempFile(20);
+		long position = System.currentTimeMillis();
+		// Must take a break here, otherwise all temp files will create all at once with the same modification time
+		Thread.sleep(1000);
+
 		String tempFile1 = TestFileUtils.createTempFile(21);
 		String tempFile2 = TestFileUtils.createTempFile(22);
 		String tempFile3 = TestFileUtils.createTempFile(23);
+
 		FileInputFormat fif = new MultiDummyFileInputFormat();
-		fif.setFilePaths(tempFile1, tempFile2, tempFile3);
+		fif.setFilePaths(tempFile0, tempFile1, tempFile2, tempFile3);
+		fif.setConsumingTimePosition(position);
 
 		fif.configure(new Configuration());
 		FileInputSplit[] splits = fif.createInputSplits(3);
@@ -233,6 +256,7 @@ public class FileInputFormatTest {
 		int numSplitsFile3 = 0;
 
 		Assert.assertEquals(3, splits.length);
+		// tempFile0 should not be included as consuming time position was set after tempFile0 is created
 		for (FileInputSplit fis : splits) {
 			Assert.assertEquals(0, fis.getStart());
 			if (fis.getPath().toString().equals(tempFile1)) {
@@ -312,7 +336,7 @@ public class FileInputFormatTest {
 			Assert.fail(ex.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testGetStatisticsOneFileWithCachedVersion() {
 		try {
@@ -324,17 +348,29 @@ public class FileInputFormatTest {
 			DummyFileInputFormat format = new DummyFileInputFormat();
 			format.setFilePath(tempFile);
 			format.configure(new Configuration());
-			
-			
+
 			FileBaseStatistics stats = format.getStatistics(null);
 			Assert.assertEquals("The file size from the statistics is wrong.", SIZE, stats.getTotalInputSize());
-			
+
+			// Test consuming time position
+			long position = System.currentTimeMillis();
+			format.setConsumingTimePosition(position);
+
+			FileBaseStatistics stats2 = format.getStatistics(null);
+			Assert.assertEquals("The file size from the statistics is wrong.", 0, stats2.getTotalInputSize());
+
 			format = new DummyFileInputFormat();
 			format.setFilePath(tempFile);
 			format.configure(new Configuration());
 			
 			FileBaseStatistics newStats = format.getStatistics(stats);
 			Assert.assertTrue("Statistics object was changed", newStats == stats);
+
+			// Test consuming time position
+			format.setConsumingTimePosition(position);
+
+			FileBaseStatistics newStats2 = format.getStatistics(null);
+			Assert.assertEquals("The file size from the statistics is wrong.", 0, newStats2.getTotalInputSize());
 
 			// insert fake stats with the correct modification time. the call should return the fake stats
 			format = new DummyFileInputFormat();
@@ -431,44 +467,85 @@ public class FileInputFormatTest {
 	}
 	
 	@Test
-	public void testGetStatisticsMultipleOneFileNoCachedVersion() throws IOException {
+	public void testGetStatisticsMultipleOneFileNoCachedVersion() throws IOException, InterruptedException {
+
 		final long size1 = 1024 * 500;
 		String tempFile = TestFileUtils.createTempFile(size1);
+
+		long position1 = System.currentTimeMillis();
+		// Must take a break here, otherwise all temp files will create all at once with the same modification time
+		Thread.sleep(1000);
 
 		final long size2 = 1024 * 505;
 		String tempFile2 = TestFileUtils.createTempFile(size2);
 
-		final long totalSize = size1 + size2;
-		
+		// Test multi files
 		final MultiDummyFileInputFormat format = new MultiDummyFileInputFormat();
 		format.setFilePaths(tempFile, tempFile2);
 		format.configure(new Configuration());
 		
 		BaseStatistics stats = format.getStatistics(null);
-		Assert.assertEquals("The file size from the statistics is wrong.", totalSize, stats.getTotalInputSize());
+		Assert.assertEquals("The file size from the statistics is wrong.", size1 + size2, stats.getTotalInputSize());
+
+		// Test multi files with consuming time position1
+		format.setConsumingTimePosition(position1);
+
+		stats = format.getStatistics(null);
+		Assert.assertEquals("The file size from the statistics is wrong.", size2, stats.getTotalInputSize());
+
+		// Test multi files with consuming time position2
+		long position2 = System.currentTimeMillis();
+		format.setConsumingTimePosition(position2);
+
+		stats = format.getStatistics(null);
+		Assert.assertEquals("The file size from the statistics is wrong.", 0, stats.getTotalInputSize());
 	}
-	
+
 	@Test
-	public void testGetStatisticsMultipleFilesMultiplePathsNoCachedVersion() throws IOException {
+	public void testGetStatisticsMultipleFilesMultiplePathsNoCachedVersion() throws IOException, InterruptedException {
 		final long size1 = 2077;
 		final long size2 = 31909;
 		final long size3 = 10;
 		final long totalSize123 = size1 + size2 + size3;
-		
-		String tempDir = TestFileUtils.createTempFileDir(temporaryFolder.newFolder(), size1, size2, size3);
-		
+
+		File dir = temporaryFolder.newFolder();
+		String tempDir = TestFileUtils.createTempFileDir(dir, size1, size2, size3);
+
+		long position = System.currentTimeMillis();
+		// Must take a break here, otherwise all temp files will create all at once with the same modification time
+		Thread.sleep(1000);
+		// Create an extra 1-byte file in the same dir to test consuming time position
+		TestFileUtils.createTempFileDir(dir, 1);
+
 		final long size4 = 2051;
 		final long size5 = 31902;
 		final long size6 = 15;
 		final long totalSize456 = size4 + size5 + size6;
-		String tempDir2 = TestFileUtils.createTempFileDir(temporaryFolder.newFolder(), size4, size5, size6);
+		String tempDir2 = TestFileUtils.createTempFileDir(dir, size4, size5, size6);
+		String dirPath = dir.toPath().toString();
 
+		// Test multi files multi paths
 		final MultiDummyFileInputFormat format = new MultiDummyFileInputFormat();
+		format.setFilePaths(dir.toPath().toString());
 		format.setFilePaths(tempDir, tempDir2);
 		format.configure(new Configuration());
-		
+
 		BaseStatistics stats = format.getStatistics(null);
 		Assert.assertEquals("The file size from the statistics is wrong.", totalSize123 + totalSize456, stats.getTotalInputSize());
+
+		// Test multi files nested multi paths
+		format.setFilePaths(dirPath);
+		format.setNestedFileEnumeration(true);
+
+		stats = format.getStatistics(null);
+		Assert.assertEquals("The file size from the statistics is wrong.", totalSize123 + totalSize456 + 1, stats.getTotalInputSize());
+
+		// Test multi files multi paths with consuming time position
+		format.setConsumingTimePosition(position);
+		format.setNestedFileEnumeration(true);
+
+		stats = format.getStatistics(null);
+		Assert.assertEquals("The file size from the statistics is wrong.", totalSize456 + 1, stats.getTotalInputSize());
 	}
 	
 	@Test

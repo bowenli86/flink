@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -205,6 +206,11 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 	 * The list of paths to files and directories that contain the input.
 	 */
 	private Path[] filePaths;
+
+	/**
+	 * The consuming time position to process files whose their modification time is no less than this timestamp.
+	 */
+	private long consumingTimePosition;
 	
 	/**
 	 * The minimal split size, set by the configure() method.
@@ -245,11 +251,23 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 	public FileInputFormat() {}
 
 	protected FileInputFormat(Path filePath) {
+		this(filePath, 0);
+	}
+
+	protected FileInputFormat(long consumingTimePosition) {
+		this(null, consumingTimePosition);
+	}
+
+	protected FileInputFormat(Path filePath, long consumingTimePosition) {
 		if (filePath != null) {
 			setFilePath(filePath);
 		}
+
+		checkArgument(consumingTimePosition >= 0);
+
+		this.consumingTimePosition = consumingTimePosition;
 	}
-	
+
 	// --------------------------------------------------------------------------------------------
 	//  Getters/setters for the configurable parameters
 	// --------------------------------------------------------------------------------------------
@@ -368,6 +386,27 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 
 		this.filePaths = filePaths;
 	}
+
+	/**
+	 * Returns the consuming time position.
+	 *
+	 * @return The consuming time position.
+	 */
+	public long getConsumingTimePosition() {
+		return consumingTimePosition;
+	}
+
+	/**
+	 * Sets consuming time position.
+	 *
+	 * @param consumingTimePosition The consuming time position to process files whose their modification time is no
+	 *                                 less than this timestamp.
+	 */
+	public void setConsumingTimePosition(long consumingTimePosition) {
+		checkArgument(consumingTimePosition >= 0);
+
+		this.consumingTimePosition = consumingTimePosition;
+	}
 	
 	public long getMinSplitSize() {
 		return minSplitSize;
@@ -483,8 +522,7 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 				LOG.warn("Could not determine statistics for paths '" + Arrays.toString(getFilePaths()) + "' due to an io error: "
 						+ ioex.getMessage());
 			}
-		}
-		catch (Throwable t) {
+		} catch (Throwable t) {
 			if (LOG.isErrorEnabled()) {
 				LOG.error("Unexpected problem while getting the file statistics for paths '" + Arrays.toString(getFilePaths()) + "': "
 						+ t.getMessage(), t);
@@ -509,6 +547,7 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 			} else if (totalLength != BaseStatistics.SIZE_UNKNOWN) {
 				totalLength += stats.getTotalInputSize();
 			}
+
 			latestModTime = Math.max(latestModTime, stats.getLastModificationTime());
 		}
 
@@ -530,9 +569,13 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 		if (file.isDir()) {
 			totalLength += addFilesInDir(file.getPath(), files, false);
 		} else {
-			files.add(file);
-			testForUnsplittable(file);
-			totalLength += file.getLen();
+			if (file.getModificationTime() >= consumingTimePosition) {
+				files.add(file);
+				testForUnsplittable(file);
+				totalLength += file.getLen();
+			} else {
+				totalLength = 0;
+			}
 		}
 
 		// check the modification time stamp
@@ -547,9 +590,10 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 		}
 
 		// sanity check
-		if (totalLength <= 0) {
+		if (totalLength < 0) {
 			totalLength = BaseStatistics.SIZE_UNKNOWN;
 		}
+
 		return new FileBaseStatistics(latestModTime, totalLength, BaseStatistics.AVG_RECORD_BYTES_UNKNOWN);
 	}
 
@@ -590,10 +634,12 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 			if (pathFile.isDir()) {
 				totalLength += addFilesInDir(path, files, true);
 			} else {
-				testForUnsplittable(pathFile);
+				if (pathFile.getModificationTime() >= consumingTimePosition) {
+					testForUnsplittable(pathFile);
 
-				files.add(pathFile);
-				totalLength += pathFile.getLen();
+					files.add(pathFile);
+					totalLength += pathFile.getLen();
+				}
 			}
 		}
 
@@ -617,7 +663,6 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 			}
 			return inputSplits.toArray(new FileInputSplit[inputSplits.size()]);
 		}
-		
 
 		final long maxSplitSize = totalLength / minNumSplits + (totalLength % minNumSplits == 0 ? 0 : 1);
 
@@ -704,28 +749,28 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 
 		long length = 0;
 
-		for(FileStatus dir: fs.listStatus(path)) {
-			if (dir.isDir()) {
-				if (acceptFile(dir) && enumerateNestedFiles) {
-					length += addFilesInDir(dir.getPath(), files, logExcludedFiles);
+		for(FileStatus file: fs.listStatus(path)) {
+			if (file.isDir()) {
+				if (acceptFile(file) && enumerateNestedFiles) {
+					length += addFilesInDir(file.getPath(), files, logExcludedFiles);
 				} else {
 					if (logExcludedFiles && LOG.isDebugEnabled()) {
-						LOG.debug("Directory "+dir.getPath().toString()+" did not pass the file-filter and is excluded.");
+						LOG.debug("Directory "+file.getPath().toString()+" did not pass the file-filter and is excluded.");
 					}
 				}
-			}
-			else {
-				if(acceptFile(dir)) {
-					files.add(dir);
-					length += dir.getLen();
-					testForUnsplittable(dir);
+			} else {
+				if(acceptFile(file) && file.getModificationTime() >= consumingTimePosition) {
+					files.add(file);
+					length += file.getLen();
+					testForUnsplittable(file);
 				} else {
 					if (logExcludedFiles && LOG.isDebugEnabled()) {
-						LOG.debug("Directory "+dir.getPath().toString()+" did not pass the file-filter and is excluded.");
+						LOG.debug("Directory "+file.getPath().toString()+" did not pass the file-filter and is excluded.");
 					}
 				}
 			}
 		}
+
 		return length;
 	}
 
@@ -744,7 +789,6 @@ public abstract class FileInputFormat<OT> extends RichInputFormat<OT, FileInputS
 		} else {
 			return null;
 		}
-
 	}
 
 	/**
