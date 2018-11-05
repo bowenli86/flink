@@ -411,7 +411,7 @@ abstract class TableEnvironment(val config: TableConfig) {
     * @return The [[ExternalCatalog]]
     */
   def getRegisteredExternalCatalog(name: String): ExternalCatalog = {
-    catalogManager.getRegisteredExternalCatalog(name)
+    catalogManager.getExternalCatalog(name)
   }
 
   /**

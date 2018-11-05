@@ -42,6 +42,9 @@ import java.util.Optional;
  * non-permanent meta objects such as temporary tables and functions.
  */
 public class CatalogManager {
+	// The default name of the default catalog
+	public static final String DEFAULT_FLINK_DEFAULT_CATALOG_NAME = "flink";
+
 	// the catalog to hold all registered and translated tables
 	// we disable caching here to prevent side effects
 	private final CalciteSchema internalSchema = CalciteSchema.createRootSchema(false, false);
@@ -52,9 +55,17 @@ public class CatalogManager {
 
 	private final TableEnvironment tableEnv;
 
+	// The name of the default catalog
+	private String defaultCatalogName = DEFAULT_FLINK_DEFAULT_CATALOG_NAME;
+
 	public CatalogManager(TableEnvironment tableEnvironment) {
 		this.tableEnv = Preconditions.checkNotNull(tableEnvironment);
+
+		// Registers a default catalog
+		externalCatalogs.put(defaultCatalogName, new FlinkInMemoryCatalog(defaultCatalogName));
 	}
+
+	// ------ schemas ------
 
 	/**
 	 * Gets the rootSchema.
@@ -83,6 +94,8 @@ public class CatalogManager {
 		return schema;
 	}
 
+	// ------ catalogs ------
+
 	/**
 	 * Registers an {@link ExternalCatalog} under a unique name in the TableEnvironment's schema.
 	 * All tables registered in the {@link ExternalCatalog} can be accessed.
@@ -105,7 +118,7 @@ public class CatalogManager {
 	 * @param name The name to look up the {@link ExternalCatalog}
 	 * @return The {@link ExternalCatalog}
 	 */
-	public ExternalCatalog getRegisteredExternalCatalog(String name)
+	public ExternalCatalog getExternalCatalog(String name)
 		throws ExternalCatalogNotExistException {
 		ExternalCatalog result = externalCatalogs.get(name);
 
@@ -115,6 +128,42 @@ public class CatalogManager {
 			throw new ExternalCatalogNotExistException(name);
 		}
 	}
+
+	/**
+	 * Gets names of all registered external catalogs.
+	 *
+	 * @return A list of names of all registered external catalogs
+	 */
+	public List<String> getExternalCatalogs() {
+		return new ArrayList<>(externalCatalogs.keySet());
+	}
+
+	/**
+	 * Sets name of the default external catalog.
+	 *
+	 * @param catalogName The catalogName to be set as default catalog's name.
+	 * @throws ExternalCatalogNotExistException Thrown if the named catalog doesn't exist.
+	 */
+	public void setDefaultCatalog(String catalogName) throws ExternalCatalogNotExistException {
+		synchronized (externalCatalogs) {
+			if (externalCatalogs.containsKey(catalogName)) {
+				defaultCatalogName = catalogName;
+			} else {
+				throw new ExternalCatalogNotExistException(catalogName);
+			}
+		}
+	}
+
+	/**
+	 * Gets the default external catalog.
+	 *
+	 * @return The default external catalog.
+	 */
+	public ExternalCatalog getDefaultCatalog() {
+		return externalCatalogs.get(defaultCatalogName);
+	}
+
+	// ------ tables ------
 
 	/**
 	 * Gets the names of all tables registered in this environment.

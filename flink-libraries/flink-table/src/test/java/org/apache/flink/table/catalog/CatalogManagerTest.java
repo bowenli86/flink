@@ -56,6 +56,8 @@ public class CatalogManagerTest extends TableTestBase {
 		catalogManager.registerTableInternal(TEST_TABLE, testTable);
 	}
 
+	// ------ catalogs ------
+
 	@Test(expected = ExternalCatalogAlreadyExistException.class)
 	public void testRegisterAlreadyExistCatalog() {
 		catalogManager.registerExternalCatalog(TEST_CATALOG, testCatalog);
@@ -63,13 +65,33 @@ public class CatalogManagerTest extends TableTestBase {
 
 	@Test
 	public void testGetRegisteredCatalog() {
-		assertEquals(testCatalog, catalogManager.getRegisteredExternalCatalog(TEST_CATALOG));
+		assertEquals(testCatalog, catalogManager.getExternalCatalog(TEST_CATALOG));
 	}
 
 	@Test(expected = ExternalCatalogNotExistException.class)
 	public void testGetNotExistRegisteredCatalog() {
-		catalogManager.getRegisteredExternalCatalog("missing");
+		catalogManager.getExternalCatalog("missing");
 	}
+
+	@Test
+	public void testGetExternalCatalogs() {
+		assertEquals(
+			Arrays.asList(CatalogManager.DEFAULT_FLINK_DEFAULT_CATALOG_NAME, TEST_CATALOG),
+			catalogManager.getExternalCatalogs());
+	}
+
+	@Test
+	public void testSetDefaultCatalog() {
+		assertEquals(
+			catalogManager.getExternalCatalog(CatalogManager.DEFAULT_FLINK_DEFAULT_CATALOG_NAME),
+			catalogManager.getDefaultCatalog());
+
+		catalogManager.setDefaultCatalog(TEST_CATALOG);
+
+		assertEquals(testCatalog, catalogManager.getDefaultCatalog());
+	}
+
+	// ------ tables ------
 
 	@Test
 	public void testListTables() {
