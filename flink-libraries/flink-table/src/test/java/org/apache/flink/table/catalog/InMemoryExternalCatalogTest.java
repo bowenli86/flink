@@ -56,6 +56,8 @@ public class InMemoryExternalCatalogTest {
 		catalog = new InMemoryExternalCatalog(databaseName);
 	}
 
+	// ------ tables ------
+
 	@Test
 	public void testCreateTable() {
 		assertTrue(catalog.listTables().isEmpty());
@@ -114,19 +116,21 @@ public class InMemoryExternalCatalogTest {
 		catalog.dropTable("nonexisted", false);
 	}
 
+	// ------ sub-catalogs ------
+
 	@Test(expected = CatalogNotExistException.class)
-	public void testGetNotExistDatabase() {
+	public void testGetNotExistSubCatalog() {
 		catalog.getSubCatalog("notexistedDb");
 	}
 
 	@Test
-	public void testCreateDatabase() {
+	public void testCreateSubCatalog() {
 		catalog.createSubCatalog("db2", new InMemoryExternalCatalog("db2"), false);
 		assertEquals(1, catalog.listSubCatalogs().size());
 	}
 
 	@Test(expected = CatalogAlreadyExistException.class)
-	public void testCreateExistedDatabase() {
+	public void testCreateExistedSubCatalog() {
 		catalog.createSubCatalog("existed", new InMemoryExternalCatalog("existed"), false);
 
 		assertNotNull(catalog.getSubCatalog("existed"));

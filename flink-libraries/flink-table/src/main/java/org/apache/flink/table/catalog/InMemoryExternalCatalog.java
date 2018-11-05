@@ -20,8 +20,6 @@ package org.apache.flink.table.catalog;
 
 import org.apache.flink.table.api.CatalogAlreadyExistException;
 import org.apache.flink.table.api.CatalogNotExistException;
-import org.apache.flink.table.api.TableAlreadyExistException;
-import org.apache.flink.table.api.TableNotExistException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,47 +31,15 @@ import java.util.Map;
  *
  * <p>It could be used for testing or developing instead of used in production environment.
  */
-public class InMemoryExternalCatalog implements CrudExternalCatalog {
+public class InMemoryExternalCatalog extends FlinkInMemoryCatalog {
 
-	// The name of the catalog
-	private final String catalogName;
-
-	private final Map<String, ExternalCatalogTable> tables = new HashMap<>();
 	private final Map<String, ExternalCatalog> databases = new HashMap<>();
 
-	public InMemoryExternalCatalog(String name) {
-		this.catalogName = name;
+	public InMemoryExternalCatalog(String catalogName) {
+		super(catalogName);
 	}
 
-	@Override
-	public void createTable(String tableName, ExternalCatalogTable table, boolean ignoreIfExists)
-		throws TableAlreadyExistException {
-		if (tables.containsKey(tableName)) {
-			if (!ignoreIfExists) {
-				throw new TableAlreadyExistException(catalogName, tableName);
-			}
-		} else {
-			tables.put(tableName, table);
-		}
-	}
-
-	@Override
-	public void dropTable(String tableName, boolean ignoreIfNotExists)
-		throws TableNotExistException {
-		if (tables.remove(tableName) == null && !ignoreIfNotExists) {
-			throw new TableNotExistException(catalogName, tableName);
-		}
-	}
-
-	@Override
-	public void alterTable(String tableName, ExternalCatalogTable table, boolean ignoreIfNotExists)
-		throws TableNotExistException {
-		if (tables.containsKey(tableName)) {
-			tables.put(tableName, table);
-		} else if (!ignoreIfNotExists) {
-			throw new TableNotExistException(catalogName, tableName);
-		}
-	}
+	// ------ sub-catalogs ------
 
 	@Override
 	public void createSubCatalog(String name, ExternalCatalog catalog, boolean ignoreIfExists)
@@ -103,21 +69,6 @@ public class InMemoryExternalCatalog implements CrudExternalCatalog {
 		} else if (!ignoreIfNotExists) {
 			throw new CatalogNotExistException(name);
 		}
-	}
-
-	@Override
-	public ExternalCatalogTable getTable(String tableName) throws TableNotExistException {
-		ExternalCatalogTable result = tables.get(tableName);
-		if (result == null) {
-			throw new TableNotExistException(catalogName, tableName, null);
-		} else {
-			return result;
-		}
-	}
-
-	@Override
-	public List<String> listTables() {
-		return new ArrayList<>(tables.keySet());
 	}
 
 	@Override
