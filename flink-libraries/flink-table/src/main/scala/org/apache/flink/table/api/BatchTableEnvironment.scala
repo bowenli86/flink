@@ -137,7 +137,7 @@ abstract class BatchTableEnvironment(
             val newTable = new TableSourceSinkTable(
               Some(new BatchTableSourceTable(batchTableSource)),
               None)
-            catalogManager.registerTableInternal(name, newTable)
+            catalogManager.registerTable(name, newTable)
         }
 
       // not a batch table source
@@ -284,7 +284,7 @@ abstract class BatchTableEnvironment(
             val newTable = new TableSourceSinkTable(
               None,
               Some(new TableSinkTable(configuredSink)))
-            catalogManager.registerTableInternal(name, newTable)
+            catalogManager.registerTable(name, newTable)
         }
 
       // not a batch table sink
@@ -413,7 +413,7 @@ abstract class BatchTableEnvironment(
       fieldIndexes,
       fieldNames
     )
-    catalogManager.registerTableInternal(name, dataSetTable)
+    catalogManager.registerTable(name, dataSetTable)
   }
 
   /**
@@ -440,7 +440,7 @@ abstract class BatchTableEnvironment(
     }
 
     val dataSetTable = new DataSetTable[T](dataSet, fieldIndexes, fieldNames)
-    catalogManager.registerTableInternal(name, dataSetTable)
+    catalogManager.registerTable(name, dataSetTable)
   }
 
   /**

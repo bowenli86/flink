@@ -51,7 +51,7 @@ public class CatalogManager {
 	private final SchemaPlus rootSchema = internalSchema.plus();
 
 	// registered external catalog names -> catalog
-	private final Map<String, ExternalCatalog> externalCatalogs = new HashMap<>();
+	private final Map<String, CrudExternalCatalog> externalCatalogs = new HashMap<>();
 
 	private final TableEnvironment tableEnv;
 
@@ -175,18 +175,38 @@ public class CatalogManager {
 	}
 
 	/**
-	 * Registers a Calcite {@link AbstractTable} in the TableEnvironment's catalog.
+	 * Registers a Calcite {@link AbstractTable} in catalog.
 	 *
 	 * @param name The name under which the table will be registered.
 	 * @param table The table to register in the catalog
 	 * @throws TableException if another table is registered under the provided name.
 	 */
-	public void registerTableInternal(String name, AbstractTable table) throws TableException {
+	public void registerTable(String name, AbstractTable table) throws TableException {
 		if (isRegistered(name)) {
 			throw new TableException(
 				String.format("Table %s already exists. Please, choose a different name.", name));
 		} else {
 			rootSchema.add(name, table);
+			externalCatalogs.get()
+		}
+	}
+
+	/**
+	 * Registers a Calcite {@link AbstractTable} in catalog.
+	 *
+	 * @param name The name under which the table will be registered.
+	 * @param table The table to register in the catalog
+	 * @throws TableException if another table is registered under the provided name.
+	 */
+	public void registerTable(String name, AbstractTable table, String catalogName) throws TableException {
+		if (isRegistered(name)) {
+			throw new TableException(
+				String.format("Table %s already exists. Please, choose a different name.", name));
+		} else {
+			String[]
+			rootSchema.add(name, table);
+			CrudExternalCatalog catalog = externalCatalogs.get(catalogName);
+			catalog.
 		}
 	}
 

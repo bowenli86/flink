@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -53,7 +54,7 @@ public class CatalogManagerTest extends TableTestBase {
 	@Before
 	public void init() {
 		catalogManager.registerExternalCatalog(TEST_CATALOG, testCatalog);
-		catalogManager.registerTableInternal(TEST_TABLE, testTable);
+		catalogManager.registerTable(TEST_TABLE, testTable);
 	}
 
 	// ------ catalogs ------
@@ -105,7 +106,7 @@ public class CatalogManagerTest extends TableTestBase {
 
 	@Test(expected = TableException.class)
 	public void testRegisterTableInternalWithAlreadyExistTable() {
-		catalogManager.registerTableInternal(TEST_TABLE, testTable);
+		catalogManager.registerTable(TEST_TABLE, testTable);
 	}
 
 	@Test
@@ -114,7 +115,10 @@ public class CatalogManagerTest extends TableTestBase {
 
 		catalogManager.replaceRegisteredTable(TEST_TABLE, replace);
 
-		Table newTable = catalogManager.getTable(TEST_TABLE).get();
+		Optional<Table> result = catalogManager.getTable(TEST_TABLE);
+		assertTrue(result.isPresent());
+
+		Table newTable = result.get();
 
 		assertNotNull(newTable);
 		assertNotEquals(testTable, newTable);

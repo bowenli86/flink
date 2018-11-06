@@ -508,7 +508,7 @@ abstract class TableEnvironment(val config: TableConfig) {
 
     checkValidTableName(name)
     val tableTable = new RelTable(table.getRelNode)
-    catalogManager.registerTableInternal(name, tableTable)
+    catalogManager.registerTable(name, tableTable)
   }
 
   /**

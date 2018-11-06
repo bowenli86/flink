@@ -153,7 +153,7 @@ abstract class StreamTableEnvironment(
             val newTable = new TableSourceSinkTable(
               Some(new StreamTableSourceTable(streamTableSource)),
               None)
-            catalogManager.registerTableInternal(name, newTable)
+            catalogManager.registerTable(name, newTable)
         }
 
       // not a stream table source
@@ -304,7 +304,7 @@ abstract class StreamTableEnvironment(
             val newTable = new TableSourceSinkTable(
               None,
               Some(new TableSinkTable(configuredSink)))
-            catalogManager.registerTableInternal(name, newTable)
+            catalogManager.registerTable(name, newTable)
         }
 
       // not a stream table sink
@@ -530,7 +530,7 @@ abstract class StreamTableEnvironment(
       fieldIndexes,
       fieldNames
     )
-    catalogManager.registerTableInternal(name, dataStreamTable)
+    catalogManager.registerTable(name, dataStreamTable)
   }
 
   /**
@@ -572,7 +572,7 @@ abstract class StreamTableEnvironment(
       indexesWithIndicatorFields,
       namesWithIndicatorFields
     )
-    catalogManager.registerTableInternal(name, dataStreamTable)
+    catalogManager.registerTable(name, dataStreamTable)
   }
 
   /**
