@@ -78,7 +78,7 @@ abstract class TableEnvironment(val config: TableConfig) {
   // the catalog to hold all registered and translated tables
   // we disable caching here to prevent side effects
   private val internalSchema: CalciteSchema = CalciteSchema.createRootSchema(false, false)
-  private val rootSchema: SchemaPlus = internalSchema.plus()
+  val rootSchema: SchemaPlus = internalSchema.plus()
 
   // Table API/SQL function catalog
   private[flink] val functionCatalog: FunctionCatalog = FunctionCatalog.withBuiltIns
