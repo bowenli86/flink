@@ -49,12 +49,12 @@ under the License.
 		</dependency>
 	</dependencies>
 
-	
+
 
 	<build>
 		<plugins>
 
-			<!-- 
+			<!--
 				Build an uber jar of the shaded-hadoop-dependency
 				and all its transitive dependencies
 			-->
