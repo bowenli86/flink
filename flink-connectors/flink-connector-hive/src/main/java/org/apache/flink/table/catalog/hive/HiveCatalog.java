@@ -28,6 +28,7 @@ import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogFunction;
 import org.apache.flink.table.catalog.CatalogPartition;
 import org.apache.flink.table.catalog.CatalogPartitionSpec;
+import org.apache.flink.table.catalog.ConnectorCatalogTable;
 import org.apache.flink.table.catalog.GenericCatalogDatabase;
 import org.apache.flink.table.catalog.GenericCatalogFunction;
 import org.apache.flink.table.catalog.GenericCatalogPartition;
@@ -112,6 +113,12 @@ public class HiveCatalog extends AbstractCatalog {
 
 	private final HiveConf hiveConf;
 
+	// For database operations, databases in in-memory catalog needs to be subject to those in Hive metastore,
+	// thus put in-memory database operations at the end of each API implementations
+	// For operations for other meta-objects like table, we need to check if the table is ConnectorCatalogTable,
+	// thus put their in-memory operations at the top of each API implementations
+	private final GenericInMemoryCatalog inMemoryCatalog;
+
 	private HiveMetastoreClientWrapper client;
 
 	public HiveCatalog(String catalogName, @Nullable String defaultDatabase, @Nullable String hiveSiteFilePath) {
@@ -132,6 +139,8 @@ public class HiveCatalog extends AbstractCatalog {
 		this.hiveConf = hiveConf == null ? getHiveConf(null) : hiveConf;
 
 		LOG.info("Created HiveCatalog '{}'", catalogName);
+
+		inMemoryCatalog = new GenericInMemoryCatalog(catalogName, defaultDatabase == null ? DEFAULT_DB : defaultDatabase);
 	}
 
 	private static URL loadHiveSiteUrl(String filePath) {
@@ -172,6 +181,8 @@ public class HiveCatalog extends AbstractCatalog {
 			throw new CatalogException(String.format("Configured default database %s doesn't exist in catalog %s.",
 				getDefaultDatabase(), getName()));
 		}
+
+		inMemoryCatalog.open();
 	}
 
 	@Override
@@ -181,6 +192,8 @@ public class HiveCatalog extends AbstractCatalog {
 			client = null;
 			LOG.info("Close connection to Hive metastore");
 		}
+
+		inMemoryCatalog.close();
 	}
 
 	// ------ databases ------
@@ -212,6 +225,8 @@ public class HiveCatalog extends AbstractCatalog {
 		} catch (TException e) {
 			throw new CatalogException(String.format("Failed to create database %s", hiveDatabase.getName()), e);
 		}
+
+		inMemoryCatalog.createDatabase(databaseName, database, ignoreIfExists);
 	}
 
 	private static Database instantiateHiveDatabase(String databaseName, CatalogDatabase database) {
@@ -266,6 +281,8 @@ public class HiveCatalog extends AbstractCatalog {
 		} catch (TException e) {
 			throw new CatalogException(String.format("Failed to alter database %s", databaseName), e);
 		}
+
+		inMemoryCatalog.alterDatabase(databaseName, newDatabase, ignoreIfNotExists);
 	}
 
 	@Override
@@ -293,6 +310,7 @@ public class HiveCatalog extends AbstractCatalog {
 	@Override
 	public void dropDatabase(String name, boolean ignoreIfNotExists) throws DatabaseNotExistException,
 			DatabaseNotEmptyException, CatalogException {
+
 		try {
 			client.dropDatabase(name, true, ignoreIfNotExists);
 		} catch (NoSuchObjectException e) {
@@ -304,6 +322,10 @@ public class HiveCatalog extends AbstractCatalog {
 		} catch (TException e) {
 			throw new CatalogException(String.format("Failed to drop database %s", name), e);
 		}
+
+		// Drop database should be subject to databases in Hive Metastore
+		// Thus, it doesn't matter whether an empty in-memory database exist or not. So set ignoreIfNotExists always as true
+		inMemoryCatalog.dropDatabase(name, true);
 	}
 
 	private Database getHiveDatabase(String databaseName) throws DatabaseNotExistException {
@@ -323,6 +345,10 @@ public class HiveCatalog extends AbstractCatalog {
 	public CatalogBaseTable getTable(ObjectPath tablePath) throws TableNotExistException, CatalogException {
 		checkNotNull(tablePath, "tablePath cannot be null");
 
+		if (inMemoryCatalog.tableExists(tablePath)) {
+			return inMemoryCatalog.getTable(tablePath);
+		}
+
 		Table hiveTable = getHiveTable(tablePath);
 		return instantiateHiveCatalogTable(hiveTable);
 	}
@@ -335,6 +361,12 @@ public class HiveCatalog extends AbstractCatalog {
 
 		if (!databaseExists(tablePath.getDatabaseName())) {
 			throw new DatabaseNotExistException(getName(), tablePath.getDatabaseName());
+		}
+
+		if (table instanceof ConnectorCatalogTable) {
+			createInMemoryDbIfNotExist(tablePath.getDatabaseName());
+			inMemoryCatalog.createTable(tablePath, table, ignoreIfExists);
+			return;
 		}
 
 		Table hiveTable = instantiateHiveTable(tablePath, table);
@@ -355,6 +387,10 @@ public class HiveCatalog extends AbstractCatalog {
 			throws TableNotExistException, TableAlreadyExistException, CatalogException {
 		checkNotNull(tablePath, "tablePath cannot be null");
 		checkArgument(!StringUtils.isNullOrWhitespaceOnly(newTableName), "newTableName cannot be null or empty");
+
+		if (inMemoryCatalog.tableExists(tablePath)) {
+			inMemoryCatalog.renameTable(tablePath, newTableName, ignoreIfNotExists);
+		}
 
 		try {
 			// alter_table() doesn't throw a clear exception when target table doesn't exist.
@@ -384,6 +420,17 @@ public class HiveCatalog extends AbstractCatalog {
 			throws TableNotExistException, CatalogException {
 		checkNotNull(tablePath, "tablePath cannot be null");
 		checkNotNull(newCatalogTable, "newCatalogTable cannot be null");
+
+		if (inMemoryCatalog.tableExists(tablePath)) {
+			if (newCatalogTable instanceof ConnectorCatalogTable) {
+				inMemoryCatalog.alterTable(tablePath, newCatalogTable, ignoreIfNotExists);
+				return;
+			}
+
+			throw new CatalogException(
+				String.format("Table types don't match. Existing table is '%s' and new table is '%s'.",
+					ConnectorCatalogTable.class.getName(), newCatalogTable.getClass().getName()));
+		}
 
 		Table hiveTable;
 		try {
@@ -422,6 +469,11 @@ public class HiveCatalog extends AbstractCatalog {
 	public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
 		checkNotNull(tablePath, "tablePath cannot be null");
 
+		if (inMemoryCatalog.tableExists(tablePath)) {
+			inMemoryCatalog.dropTable(tablePath, ignoreIfNotExists);
+			return;
+		}
+
 		try {
 			client.dropTable(
 				tablePath.getDatabaseName(),
@@ -444,8 +496,13 @@ public class HiveCatalog extends AbstractCatalog {
 	public List<String> listTables(String databaseName) throws DatabaseNotExistException, CatalogException {
 		checkArgument(!StringUtils.isNullOrWhitespaceOnly(databaseName), "databaseName cannot be null or empty");
 
+		createInMemoryDbIfNotExist(databaseName);
+
+		List<String> tables = new ArrayList<>(inMemoryCatalog.listTables(databaseName));
+
 		try {
-			return client.getAllTables(databaseName);
+			tables.addAll(client.getAllTables(databaseName));
+			return tables;
 		} catch (UnknownDBException e) {
 			throw new DatabaseNotExistException(getName(), databaseName);
 		} catch (TException e) {
@@ -473,7 +530,7 @@ public class HiveCatalog extends AbstractCatalog {
 		checkNotNull(tablePath, "tablePath cannot be null");
 
 		try {
-			return client.tableExists(tablePath.getDatabaseName(), tablePath.getObjectName());
+			return inMemoryCatalog.tableExists(tablePath) || client.tableExists(tablePath.getDatabaseName(), tablePath.getObjectName());
 		} catch (UnknownDBException e) {
 			return false;
 		} catch (TException e) {
@@ -1124,6 +1181,14 @@ public class HiveCatalog extends AbstractCatalog {
 	@Override
 	public CatalogColumnStatistics getPartitionColumnStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws PartitionNotExistException, CatalogException {
 		throw new UnsupportedOperationException();
+	}
+
+	protected void createInMemoryDbIfNotExist(String dbName) {
+		try {
+			inMemoryCatalog.createDatabase(dbName, new HiveCatalogDatabase(new HashMap<>(), null), true);
+		} catch (DatabaseAlreadyExistException e) {
+			// shouldn't throw DatabaseAlreadyExistException since the ignoreIfExists flag is set to true
+		}
 	}
 
 }
