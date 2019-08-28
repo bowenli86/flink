@@ -20,6 +20,8 @@ package org.apache.flink.table.catalog;
 
 import org.apache.flink.util.StringUtils;
 
+import java.util.Optional;
+
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
@@ -44,5 +46,10 @@ public abstract class AbstractCatalog implements Catalog {
 	@Override
 	public String getDefaultDatabase() {
 		return defaultDatabase;
+	}
+
+	@Override
+	public Optional<CatalogFunction> getExternalBuiltInFunction(String name) {
+		return Optional.empty();
 	}
 }

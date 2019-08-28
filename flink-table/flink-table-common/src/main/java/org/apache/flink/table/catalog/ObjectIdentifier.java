@@ -51,8 +51,10 @@ public final class ObjectIdentifier implements Serializable {
 			String catalogName,
 			String databaseName,
 			String objectName) {
-		this.catalogName = Preconditions.checkNotNull(catalogName, "Catalog name must not be null.");
-		this.databaseName = Preconditions.checkNotNull(databaseName, "Database name must not be null.");
+		this.catalogName = catalogName;
+		this.databaseName = databaseName;
+//		this.catalogName = Preconditions.checkNotNull(catalogName, "Catalog name must not be null.");
+//		this.databaseName = Preconditions.checkNotNull(databaseName, "Database name must not be null.");
 		this.objectName = Preconditions.checkNotNull(objectName, "Object name must not be null.");
 	}
 

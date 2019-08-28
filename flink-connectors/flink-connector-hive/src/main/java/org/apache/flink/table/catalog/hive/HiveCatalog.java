@@ -79,8 +79,11 @@ import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
+import org.apache.hadoop.hive.ql.exec.FunctionInfo;
+import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.io.StorageFormatDescriptor;
 import org.apache.hadoop.hive.ql.io.StorageFormatFactory;
+import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hive.common.util.HiveStringUtils;
@@ -1097,6 +1100,33 @@ public class HiveCatalog extends AbstractCatalog {
 			new ArrayList<>()		// Resource URIs
 		);
 	}
+
+	@Override
+	public Optional<CatalogFunction> getExternalBuiltInFunction(String name) {
+		String funcName = HiveStringUtils.normalizeIdentifier(name);
+
+		if (FunctionRegistry.getFunctionNames().contains(funcName)) {
+			try {
+				FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(funcName);
+
+				if (functionInfo.isBuiltIn()) {
+					return Optional.of(
+						new CatalogFunctionImpl(
+							functionInfo.getFunctionClass().getName(),
+							new HashMap<String, String>() {{
+								put(CatalogConfig.IS_GENERIC, String.valueOf(false));
+							}}
+						)
+					);
+				}
+			} catch (SemanticException e) {
+				// Ignore
+			}
+		}
+
+		return Optional.empty();
+	}
+
 
 	private boolean isTablePartitioned(Table hiveTable) {
 		return hiveTable.getPartitionKeysSize() != 0;

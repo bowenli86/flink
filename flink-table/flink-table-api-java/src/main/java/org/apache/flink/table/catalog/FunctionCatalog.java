@@ -60,7 +60,7 @@ public class FunctionCatalog implements FunctionLookup {
 
 	// For simplicity, currently hold registered Flink functions in memory here
 	// TODO: should move to catalog
-	private final Map<String, FunctionDefinition> userFunctions = new LinkedHashMap<>();
+	private final Map<String, FunctionDefinition> tempFunctions = new LinkedHashMap<>();
 
 	/**
 	 * Temporary utility until the new type inference is fully functional. It needs to be set by the planner.
@@ -165,7 +165,7 @@ public class FunctionCatalog implements FunctionLookup {
 
 		// Get functions registered in memory
 		result.addAll(
-			userFunctions.values().stream()
+			tempFunctions.values().stream()
 				.map(FunctionDefinition::toString)
 				.collect(Collectors.toSet()));
 
@@ -174,62 +174,75 @@ public class FunctionCatalog implements FunctionLookup {
 
 	@Override
 	public Optional<FunctionLookup.Result> lookupFunction(String name) {
-		String functionName = normalizeName(name);
+		String normalizedName = normalizeName(name);
 
-		FunctionDefinition userCandidate;
+		if (tempFunctions.containsKey(normalizedName)) {
+			return Optional.of(
+				new FunctionLookup.Result(
+					ObjectIdentifier.of("", "", name), tempFunctions.get(normalizedName)));
+		}
+
+		Optional<FunctionDefinition> flinkBuiltIn = BuiltInFunctionDefinitions.getDefinitions()
+				.stream()
+				.filter(f -> normalizedName.equals(normalizeName(f.getName())))
+				.findFirst()
+				.map(Function.identity());
+
+		if (flinkBuiltIn.isPresent()) {
+			return flinkBuiltIn.map(definition -> new FunctionLookup.Result(
+				ObjectIdentifier.of(
+					"",
+					"",
+					name),
+				definition)
+			);
+		}
 
 		Catalog catalog = catalogManager.getCatalog(catalogManager.getCurrentCatalog()).get();
 
+		Optional<CatalogFunction> external = catalog.getExternalBuiltInFunction(normalizedName);
+		if (external.isPresent()) {
+			FunctionDefinition fd = createFunctionDefinition(normalizedName, external.get());
+			return Optional.of(
+				new FunctionLookup.Result(
+					ObjectIdentifier.of(
+						"",
+						"",
+						name),
+					fd)
+			);
+		}
+
+		ObjectPath path = new ObjectPath(catalogManager.getCurrentDatabase(), normalizedName);
 		try {
-			CatalogFunction catalogFunction = catalog.getFunction(
-				new ObjectPath(catalogManager.getCurrentDatabase(), functionName));
-
-			if (catalog.getTableFactory().isPresent() &&
-				catalog.getTableFactory().get() instanceof FunctionDefinitionFactory) {
-
-				FunctionDefinitionFactory factory = (FunctionDefinitionFactory) catalog.getTableFactory().get();
-
-				userCandidate = factory.createFunctionDefinition(functionName, catalogFunction);
-
-				return Optional.of(
-					new FunctionLookup.Result(
-						ObjectIdentifier.of(catalogManager.getCurrentCatalog(), catalogManager.getCurrentDatabase(), name),
-						userCandidate)
-				);
-			} else {
-				// TODO: should go through function definition discover service
-			}
+			FunctionDefinition fd = createFunctionDefinition(normalizedName, catalog.getFunction(path));
+			return Optional.of(
+				new FunctionLookup.Result(
+					ObjectIdentifier.of(
+						catalogManager.getCurrentCatalog(),
+						catalogManager.getCurrentDatabase(),
+						name),
+					fd)
+			);
 		} catch (FunctionNotExistException e) {
-			// Ignore
+			// ignore
 		}
 
-		// If no corresponding function is found in catalog, check in-memory functions
-		userCandidate = userFunctions.get(functionName);
+		return Optional.empty();
+	}
 
-		final Optional<FunctionDefinition> foundDefinition;
-		if (userCandidate != null) {
-			foundDefinition = Optional.of(userCandidate);
+	private FunctionDefinition createFunctionDefinition(String name, CatalogFunction catalogFunction) {
+		Catalog catalog = catalogManager.getCatalog(catalogManager.getCurrentCatalog()).get();
+
+		if (catalog.getTableFactory().isPresent() && catalog.getTableFactory().get() instanceof FunctionDefinitionFactory) {
+			FunctionDefinitionFactory factory = (FunctionDefinitionFactory) catalog.getTableFactory().get();
+
+			return factory.createFunctionDefinition(name, catalogFunction);
 		} else {
-
-			// TODO once we connect this class with the Catalog APIs we need to make sure that
-			//  built-in functions are present in "root" built-in catalog. This allows to
-			//  overwrite built-in functions but also fallback to the "root" catalog. It should be
-			//  possible to disable the "root" catalog if that is desired.
-
-			foundDefinition = BuiltInFunctionDefinitions.getDefinitions()
-				.stream()
-				.filter(f -> functionName.equals(normalizeName(f.getName())))
-				.findFirst()
-				.map(Function.identity());
+			// go thru function definition discovery service
+			// out of scope of this FLIP
+			throw new UnsupportedOperationException();
 		}
-
-		return foundDefinition.map(definition -> new FunctionLookup.Result(
-			ObjectIdentifier.of(
-				catalogManager.getBuiltInCatalogName(),
-				catalogManager.getBuiltInDatabaseName(),
-				name),
-			definition)
-		);
 	}
 
 	@Override
@@ -242,7 +255,7 @@ public class FunctionCatalog implements FunctionLookup {
 
 	private void registerFunction(String name, FunctionDefinition functionDefinition) {
 		// TODO: should register to catalog
-		userFunctions.put(normalizeName(name), functionDefinition);
+		tempFunctions.put(normalizeName(name), functionDefinition);
 	}
 
 	@VisibleForTesting

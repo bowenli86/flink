@@ -425,6 +425,13 @@ public interface Catalog {
 	void dropFunction(ObjectPath functionPath, boolean ignoreIfNotExists)
 		throws FunctionNotExistException, CatalogException;
 
+	/**
+	 *
+	 * @param name
+	 * @return
+	 */
+	Optional<CatalogFunction> getExternalBuiltInFunction(String name);
+
 	// ------ statistics ------
 
 	// ------ statistics ------
